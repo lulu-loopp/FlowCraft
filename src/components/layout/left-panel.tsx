@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Bot, Wrench, Lightbulb, User, ArrowRightLeft, GitBranch, PlayCircle, Layers, Search, ChevronDown } from 'lucide-react';
+import { Bot, Wrench, Lightbulb, User, ArrowRightLeft, GitBranch, PlayCircle, Layers, Search, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 
 const NODE_TYPES = [
@@ -19,6 +19,7 @@ export function LeftPanel() {
   const [search, setSearch] = useState('');
   const [nodesOpen, setNodesOpen] = useState(true);
   const [agentsOpen, setAgentsOpen] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const onDragStart = (event: React.DragEvent, nodeType: string) => {
     event.dataTransfer.setData('application/reactflow', nodeType);
@@ -31,18 +32,39 @@ export function LeftPanel() {
     n.type.includes(search.toLowerCase())
   );
 
+  if (isCollapsed) {
+    return (
+      <div className="w-9 bg-white border-r border-slate-200 flex flex-col items-center py-3 shrink-0">
+        <button
+          onClick={() => setIsCollapsed(false)}
+          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          title="Expand panel"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="w-64 bg-white border-r border-slate-200 flex flex-col overflow-hidden shrink-0">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-100/60">
+      <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
           <Layers className="w-4 h-4 text-slate-400" />
           {t('panel.left.title')}
         </h2>
+        <button
+          onClick={() => setIsCollapsed(true)}
+          className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          title="Collapse panel"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Search */}
-      <div className="px-3 py-2 border-b border-slate-100/60">
+      <div className="px-3 py-2 border-b border-slate-200">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
           <input
@@ -50,7 +72,7 @@ export function LeftPanel() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search nodes..."
-            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white/60 placeholder-slate-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-400 outline-none transition-all"
+            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-slate-400 focus:border-slate-400 outline-none transition-all"
           />
         </div>
       </div>
@@ -74,7 +96,7 @@ export function LeftPanel() {
               return (
                 <div
                   key={node.type}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent bg-white/50 hover:bg-white hover:border-slate-100 hover:shadow-sm hover:-translate-y-px transition-all cursor-grab active:cursor-grabbing active:scale-[0.98]"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-slate-50 hover:border-slate-100 hover:-translate-y-px transition-all cursor-grab active:cursor-grabbing active:scale-[0.98]"
                   draggable
                   onDragStart={(e) => onDragStart(e, node.type)}
                 >

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { FolderOpen, Clock } from 'lucide-react';
+import { FolderOpen, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Tabs } from '../ui/tabs';
 import { useFlowStore } from '@/store/flowStore';
 import { useUIStore } from '@/store/uiStore';
@@ -9,6 +9,7 @@ import { AgentConfigPanel } from './agent-config-panel';
 
 export function RightPanel() {
   const [activeTab, setActiveTab] = React.useState('config');
+  const [isCollapsed, setIsCollapsed] = React.useState(false);
   const { selectedNodeId, nodes } = useFlowStore();
   const { t } = useUIStore();
 
@@ -25,11 +26,32 @@ export function RightPanel() {
     { id: 'history', label: t('panel.right.history') },
   ];
 
+  if (isCollapsed) {
+    return (
+      <div className="w-9 bg-white border-l border-slate-200 flex flex-col items-center py-3 shrink-0">
+        <button
+          onClick={() => setIsCollapsed(false)}
+          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          title="Expand panel"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="w-80 bg-white border-l border-slate-200 flex flex-col overflow-hidden shrink-0">
-      {/* Tabs header */}
-      <div className="px-3 py-3 border-b border-slate-200 shrink-0">
-        <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+      {/* Tabs header + collapse button */}
+      <div className="px-3 py-3 border-b border-slate-200 shrink-0 flex items-center gap-2">
+        <button
+          onClick={() => setIsCollapsed(true)}
+          className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors shrink-0"
+          title="Collapse panel"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+        <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} className="flex-1" />
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
