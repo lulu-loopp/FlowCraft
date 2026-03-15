@@ -2,14 +2,16 @@
 
 import React from 'react';
 import { Panel } from '../ui/panel';
-import { FolderTree, History } from 'lucide-react';
+import { FolderOpen, Clock } from 'lucide-react';
 import { Tabs } from '../ui/tabs';
 import { useFlowStore } from '@/store/flowStore';
+import { useUIStore } from '@/store/uiStore';
 import { AgentConfigPanel } from './agent-config-panel';
 
 export function RightPanel() {
   const [activeTab, setActiveTab] = React.useState('config');
   const { selectedNodeId, nodes } = useFlowStore();
+  const { t } = useUIStore();
 
   const selectedNode = React.useMemo(
     () => nodes.find((n) => n.id === selectedNodeId),
@@ -19,55 +21,70 @@ export function RightPanel() {
   const isLocked = selectedNode ? selectedNode.draggable === false : false;
 
   const tabs = [
-    { id: 'config',  label: 'Configuration' },
-    { id: 'files',   label: 'Files' },
-    { id: 'history', label: 'History' },
+    { id: 'config',  label: t('panel.right.config') },
+    { id: 'files',   label: t('panel.right.files') },
+    { id: 'history', label: t('panel.right.history') },
   ];
 
   return (
-    <Panel className="absolute top-24 bottom-4 right-4 w-80 flex flex-col overflow-hidden z-40 transition-transform duration-300">
-      <div className="p-4 border-b border-slate-100 flex-shrink-0">
+    <Panel
+      className="absolute top-24 bottom-4 right-4 w-80 flex flex-col overflow-hidden transition-transform duration-300"
+      style={{ zIndex: 'var(--z-panel)' } as React.CSSProperties}
+    >
+      {/* Tabs header */}
+      <div className="px-3 py-3 border-b border-slate-100 shrink-0">
         <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
+        {/* Config tab */}
         {activeTab === 'config' && !selectedNode && (
-          <p className="text-sm text-slate-500 text-center mt-10">
-            Select a node to view configuration.
-          </p>
+          <div className="flex flex-col items-center justify-center h-full gap-2 text-center px-4">
+            <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center mb-1">
+              <svg className="w-5 h-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-slate-700">{t('panel.right.selectNode')}</p>
+          </div>
         )}
 
         {activeTab === 'config' && selectedNode && (
           <div className="space-y-5">
             {isLocked && (
-              <div className="text-xs text-amber-600 font-medium bg-amber-50 border border-amber-100 px-2.5 py-1.5 rounded-lg">
-                Position Locked
+              <div className="text-xs text-amber-700 font-medium bg-amber-50 border border-amber-100 px-3 py-2 rounded-lg">
+                {t('panel.right.positionLocked')}
               </div>
             )}
-
-            {selectedNode.type === 'agent' && (
-              <AgentConfigPanel node={selectedNode} />
-            )}
-
+            {selectedNode.type === 'agent' && <AgentConfigPanel node={selectedNode} />}
             {selectedNode.type !== 'agent' && (
-              <p className="text-sm text-slate-500 py-4 italic leading-relaxed">
-                No specific configuration available for {selectedNode.type} node.
+              <p className="text-sm text-slate-400 py-4 leading-relaxed">
+                {t('panel.right.noConfig')}
               </p>
             )}
           </div>
         )}
 
+        {/* Files tab */}
         {activeTab === 'files' && (
-          <div className="text-sm text-slate-500 flex flex-col items-center justify-center h-full gap-2">
-            <FolderTree className="w-12 h-12 text-slate-200" />
-            <span className="text-slate-400">No workspace files</span>
+          <div className="flex flex-col items-center justify-center h-full gap-2 text-center px-4">
+            <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center mb-1">
+              <FolderOpen className="w-5 h-5 text-slate-400" />
+            </div>
+            <p className="text-sm font-medium text-slate-700">{t('panel.right.noFiles')}</p>
+            <p className="text-xs text-slate-400 leading-relaxed">{t('panel.right.noFilesHint')}</p>
           </div>
         )}
 
+        {/* History tab */}
         {activeTab === 'history' && (
-          <div className="text-sm text-slate-500 flex flex-col items-center justify-center h-full gap-2">
-            <History className="w-12 h-12 text-slate-200" />
-            <span className="text-slate-400">No run history yet</span>
+          <div className="flex flex-col items-center justify-center h-full gap-2 text-center px-4">
+            <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center mb-1">
+              <Clock className="w-5 h-5 text-slate-400" />
+            </div>
+            <p className="text-sm font-medium text-slate-700">{t('panel.right.noHistory')}</p>
+            <p className="text-xs text-slate-400 leading-relaxed">{t('panel.right.noHistoryHint')}</p>
           </div>
         )}
       </div>

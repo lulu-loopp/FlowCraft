@@ -7,6 +7,7 @@ import { Plus, X, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { useFlowStore } from '@/store/flowStore';
 import { useAgentStore } from '@/store/agent-store';
+import { useUIStore } from '@/store/uiStore';
 import { MODEL_OPTIONS, ModelProvider } from '@/types/model';
 import type { Node } from '@xyflow/react';
 
@@ -71,7 +72,7 @@ function DropdownSelect({
         ref={btnRef}
         type="button"
         onClick={toggle}
-        className="w-full flex items-center justify-between p-2.5 text-sm rounded-lg border border-slate-200 bg-white/50 hover:border-slate-300 hover:bg-white focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer transition-all"
+        className="w-full flex items-center justify-between p-2.5 text-sm rounded-lg border border-slate-200 bg-white/50 hover:border-slate-300 hover:bg-white focus:ring-2 focus:ring-teal-500 outline-none cursor-pointer transition-all"
       >
         <span className="text-slate-700">{currentLabel}</span>
         <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
@@ -79,7 +80,7 @@ function DropdownSelect({
 
       {open && typeof document !== 'undefined' && createPortal(
         <div
-          style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 9999, animation: 'dropdown-in 0.12s ease-out' } as React.CSSProperties}
+          style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 'var(--z-dropdown)', animation: 'dropdown-in 0.12s ease-out' } as React.CSSProperties}
           className="bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden"
           onPointerDown={(e) => e.stopPropagation()}
         >
@@ -138,6 +139,7 @@ interface AgentConfigPanelProps { node: Node }
 export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
   const { nodes, setNodes } = useFlowStore();
   const { skillRegistry, fetchSkills } = useAgentStore();
+  const { t } = useUIStore();
 
   useEffect(() => { fetchSkills(); }, [fetchSkills]);
 
@@ -166,10 +168,10 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
     <div className="space-y-5">
       {/* Node Name */}
       <div>
-        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Node Name</label>
+        <label className="block text-xs font-medium text-slate-500 mb-1.5">{t('config.nodeName')}</label>
         <input
           type="text"
-          className="w-full p-2.5 text-sm rounded-lg border border-slate-200 bg-white/50 hover:border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 outline-none transition-colors"
+          className="w-full p-2.5 text-sm rounded-lg border border-slate-200 bg-white/50 hover:border-slate-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-400 outline-none transition-colors"
           value={(data.label as string) || ''}
           onChange={(e) => updateNodeData({ label: e.target.value })}
         />
@@ -177,10 +179,10 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
 
       {/* System Prompt */}
       <div>
-        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">System Prompt</label>
+        <label className="block text-xs font-medium text-slate-500 mb-1.5">{t('config.systemPrompt')}</label>
         <textarea
-          className="w-full h-28 p-3 text-sm leading-relaxed rounded-lg border border-slate-200 bg-white/50 hover:border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 outline-none resize-none transition-colors"
-          placeholder="Enter agent's core instructions..."
+          className="w-full h-28 p-3 text-sm leading-relaxed rounded-lg border border-slate-200 bg-white/50 hover:border-slate-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-400 outline-none resize-none transition-colors"
+          placeholder={t('config.systemPromptPlaceholder')}
           value={(data.systemPrompt as string) || ''}
           onChange={(e) => updateNodeData({ systemPrompt: e.target.value })}
         />
@@ -188,7 +190,7 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
 
       {/* Model Selection */}
       <div>
-        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Model Selection</label>
+        <label className="block text-xs font-medium text-slate-500 mb-1.5">{t('config.model')}</label>
         <div className="space-y-2">
           <DropdownSelect
             value={provider}
@@ -205,12 +207,12 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
 
       {/* Max Iterations */}
       <div>
-        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Max Iterations</label>
+        <label className="block text-xs font-medium text-slate-500 mb-1.5">{t('config.maxIterations')}</label>
         <input
           type="number"
           min={1}
           max={50}
-          className="w-full p-2.5 text-sm rounded-lg border border-slate-200 bg-white/50 hover:border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none transition-colors"
+          className="w-full p-2.5 text-sm rounded-lg border border-slate-200 bg-white/50 hover:border-slate-300 focus:ring-2 focus:ring-teal-500 outline-none transition-colors"
           value={(data.maxIterations as number) ?? 5}
           onChange={(e) => updateNodeData({ maxIterations: parseInt(e.target.value) })}
         />
@@ -218,7 +220,7 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
 
       {/* Capabilities */}
       <div>
-        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2.5">Capabilities</label>
+        <label className="block text-xs font-medium text-slate-500 mb-2">{t('config.capabilities')}</label>
         <div className="grid grid-cols-2 gap-1.5">
           {AVAILABLE_TOOLS.map((tool) => (
             <ToggleChip
@@ -238,11 +240,11 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
 
       {/* Skills */}
       <div>
-        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2.5">Skills</label>
+        <label className="block text-xs font-medium text-slate-500 mb-2">{t('config.skills')}</label>
         {skillRegistry.length === 0 ? (
           <p className="text-xs text-slate-400">
-            No skills installed.{' '}
-            <Link href="/playground" className="text-indigo-500 hover:underline">Install from Playground.</Link>
+            {t('config.noSkills')}{' '}
+            <Link href="/playground" className="text-teal-600 hover:underline">{t('config.installSkills')}</Link>
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-1.5">
@@ -265,14 +267,14 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
 
       {/* Completion Criteria */}
       <div>
-        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2.5">Completion Criteria</label>
+        <label className="block text-xs font-medium text-slate-500 mb-2">{t('config.completionCriteria')}</label>
         <div className="space-y-2 mb-2">
           {completionCriteria.map((criterion, index) => (
             <div key={index} className="flex items-center gap-2 border border-slate-200 rounded-lg bg-white/50 px-2.5 py-2">
               <input
                 type="text"
                 className="flex-1 text-sm bg-transparent outline-none placeholder-slate-400"
-                placeholder="Enter acceptance criteria..."
+                placeholder={t('config.completionCriteriaPlaceholder')}
                 value={criterion}
                 onChange={(e) => {
                   const next = [...completionCriteria];
@@ -291,23 +293,23 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
         </div>
         <Button
           variant="outline" size="sm"
-          className="w-full text-indigo-600 border-indigo-100 hover:bg-indigo-50 bg-white shadow-none"
+          className="w-full text-teal-700 border-teal-100 hover:bg-teal-50 bg-white shadow-none"
           onClick={() => updateNodeData({ completionCriteria: [...completionCriteria, ''] })}
         >
-          <Plus className="w-4 h-4 mr-1" /> Add Acceptance Criteria
+          <Plus className="w-4 h-4 mr-1" /> {t('config.addCriteria')}
         </Button>
       </div>
 
       {/* Output Schema */}
       <div>
-        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2.5">Output Fields (Schema)</label>
+        <label className="block text-xs font-medium text-slate-500 mb-2">{t('config.outputSchema')}</label>
         <div className="space-y-2 mb-2">
           {outputSchema.map((field, index) => (
             <div key={index} className="flex items-center gap-2">
               <input
                 type="text"
-                className="flex-1 min-w-0 p-2 text-sm rounded-lg border border-slate-200 bg-white/50 hover:border-slate-300 outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-400 transition-colors"
-                placeholder="Field name"
+                className="flex-1 min-w-0 p-2 text-sm rounded-lg border border-slate-200 bg-white/50 hover:border-slate-300 outline-none focus:ring-2 focus:ring-teal-500 placeholder-slate-400 transition-colors"
+                placeholder={t('config.outputSchemaFieldPlaceholder')}
                 value={field.name}
                 onChange={(e) => {
                   const next = [...outputSchema];
@@ -323,7 +325,7 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
                     next[index] = { ...next[index], type: e.target.value };
                     updateNodeData({ outputSchema: next });
                   }}
-                  className="w-full appearance-none p-2 pr-6 text-sm rounded-lg border border-slate-200 bg-white/50 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-colors"
+                  className="w-full appearance-none p-2 pr-6 text-sm rounded-lg border border-slate-200 bg-white/50 outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer transition-colors"
                 >
                   {SCHEMA_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
@@ -343,7 +345,7 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
           className="w-full text-slate-600 border-slate-200 hover:bg-slate-50 bg-white shadow-none"
           onClick={() => updateNodeData({ outputSchema: [...outputSchema, { name: '', type: 'string' }] })}
         >
-          <Plus className="w-4 h-4 mr-1" /> Define Output Schema
+          <Plus className="w-4 h-4 mr-1" /> {t('config.defineSchema')}
         </Button>
       </div>
     </div>

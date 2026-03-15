@@ -1,8 +1,35 @@
 @import "tailwindcss";
 
+/* ── Design tokens ─────────────────────────────────────────── */
+:root {
+  --color-background: hsl(210 40% 98%);
+  --color-foreground: hsl(222 20% 10%);
+
+  /* Primary accent — teal (replaces indigo AI-purple) */
+  --color-accent:        #0d9488; /* teal-600 */
+  --color-accent-light:  #f0fdfa; /* teal-50  */
+  --color-accent-border: #99f6e4; /* teal-200 */
+  --color-accent-hover:  #0f766e; /* teal-700 */
+
+  /* Panel dimensions — single source of truth */
+  --panel-gap:          16px;  /* left-4 / right-4 */
+  --panel-left-w:       256px; /* w-64 */
+  --panel-right-w:      320px; /* w-80 */
+  --panel-left-offset:  calc(var(--panel-gap) + var(--panel-left-w) + var(--panel-gap));
+  --panel-right-offset: calc(var(--panel-gap) + var(--panel-right-w) + var(--panel-gap));
+
+  /* Z-index scale */
+  --z-canvas:    0;
+  --z-panel:    40;
+  --z-toolbar:  40;
+  --z-dropdown: 50;
+  --z-modal:    60;
+  --z-toast:    70;
+}
+
 @theme {
   --color-background: hsl(210 40% 98%);
-  --color-foreground: hsl(222.2 84% 4.9%);
+  --color-foreground: hsl(222 20% 10%);
 }
 
 body {
@@ -10,23 +37,19 @@ body {
   color: var(--color-foreground);
 }
 
+/* ── Glass panel ────────────────────────────────────────────── */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
-.canvas-grid-bg {
-  background-size: 20px 20px;
-  background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
-}
-
-/* Edge dash animation */
+/* ── Edge flow animation ────────────────────────────────────── */
 @keyframes dash-animation {
   from { stroke-dashoffset: 20; }
-  to { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: 0; }
 }
 
 .animated-edge path {
@@ -34,18 +57,18 @@ body {
   filter: drop-shadow(0 0 3px currentColor);
 }
 
-/* ===== Breathing Light for Running Nodes ===== */
+/* ── Node breathing glow (running state) ────────────────────── */
 @keyframes breath-glow {
   0%, 100% {
-    box-shadow: 0 0 8px 2px color-mix(in srgb, var(--glow-color, #6366f1) 20%, transparent);
+    box-shadow: 0 0 8px 2px color-mix(in srgb, var(--glow-color, #0d9488) 20%, transparent);
   }
   50% {
-    box-shadow: 0 0 24px 8px color-mix(in srgb, var(--glow-color, #6366f1) 50%, transparent);
+    box-shadow: 0 0 24px 8px color-mix(in srgb, var(--glow-color, #0d9488) 45%, transparent);
   }
 }
 
 .node-running-ring {
-  --glow-color: #6366f1;
+  --glow-color: #0d9488;
   position: absolute;
   inset: -3px;
   border-radius: 14px;
@@ -55,23 +78,17 @@ body {
   z-index: 10;
 }
 
-/* ===== Log fade-in animation ===== */
+/* ── Log fade-in ────────────────────────────────────────────── */
 @keyframes fade-in-up {
-  0% {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in-up {
   animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* ===== Edge delete button – simple fade ===== */
+/* ── Edge delete button ─────────────────────────────────────── */
 .edge-delete-btn {
   opacity: 0;
   animation: simple-fade-in 0.15s ease-out forwards;
@@ -79,13 +96,13 @@ body {
 
 @keyframes simple-fade-in {
   from { opacity: 0; }
-  to { opacity: 1; }
+  to   { opacity: 1; }
 }
 
-/* ===== Thinking dots ===== */
+/* ── Thinking dots ──────────────────────────────────────────── */
 @keyframes jump-dot {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+  50%       { transform: translateY(-4px); }
 }
 
 .thinking-dot {
@@ -96,13 +113,13 @@ body {
 .thinking-dot:nth-child(2) { animation-delay: 0.2s; }
 .thinking-dot:nth-child(3) { animation-delay: 0.4s; }
 
-/* ===== Dropdown fade-in ===== */
+/* ── Dropdown fade-in ───────────────────────────────────────── */
 @keyframes dropdown-in {
   from { opacity: 0; transform: translateY(-6px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0)   scale(1); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
 }
 
-/* ===== Indeterminate loading bar ===== */
+/* ── Indeterminate loading bar ──────────────────────────────── */
 @keyframes indeterminate-bar {
   0%   { transform: translateX(-100%); }
   100% { transform: translateX(350%); }
@@ -112,7 +129,7 @@ body {
   animation: indeterminate-bar 1.4s ease-in-out infinite;
 }
 
-/* ReactFlow overrides */
+/* ── ReactFlow overrides ────────────────────────────────────── */
 .react-flow__controls {
   border-radius: 12px;
   overflow: hidden;
@@ -121,12 +138,12 @@ body {
 }
 
 .react-flow__controls-button {
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.85);
   border-bottom: 1px solid rgba(226, 232, 240, 0.5);
 }
 
 .react-flow__controls-button:hover {
-  background: rgba(241, 245, 249, 0.9);
+  background: rgba(241, 245, 249, 0.95);
 }
 
 .react-flow__minimap {

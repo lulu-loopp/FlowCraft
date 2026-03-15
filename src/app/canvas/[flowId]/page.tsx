@@ -8,7 +8,7 @@ import { BottomPanel } from '@/components/layout/bottom-panel';
 
 export default function CanvasPage() {
   return (
-    <div className="w-screen h-screen relative overflow-hidden bg-slate-50/50">
+    <div className="w-screen min-h-[100dvh] relative overflow-hidden bg-slate-50/50">
       <TopToolbar />
       <LeftPanel />
       <FlowEditor />
