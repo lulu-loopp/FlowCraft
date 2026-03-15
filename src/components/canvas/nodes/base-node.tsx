@@ -40,7 +40,7 @@ export function BaseNode({ id, type, label, description, status = 'idle', select
 
   return (
     <div
-      className={`relative min-w-[240px] rounded-xl bg-white shadow-sm border-2 transition-all
+      className={`relative w-[260px] rounded-xl bg-white shadow-sm border-2 transition-all
         ${selected ? theme.border : 'border-transparent'}
         ${isWaiting ? 'opacity-60' : ''}
         ${isLocked ? 'nopan' : ''}`}
@@ -109,12 +109,14 @@ export function BaseNode({ id, type, label, description, status = 'idle', select
       <Handle
         type="target"
         position={Position.Left}
-        className="!w-4 !h-4 !rounded-full !bg-teal-500 !border-2 !border-white hover:!bg-teal-400 hover:!scale-125 !-left-2 !shadow-md transition-transform duration-150"
+        style={{ background: theme.hex, borderColor: 'white' }}
+        className="!w-4 !h-4 !rounded-full !border-2 hover:!scale-125 !-left-2 !shadow-md transition-transform duration-150"
       />
       <Handle
         type="source"
         position={Position.Right}
-        className="!w-4 !h-4 !rounded-full !bg-teal-500 !border-2 !border-white hover:!bg-teal-400 hover:!scale-125 !-right-2 !shadow-md transition-transform duration-150"
+        style={{ background: theme.hex, borderColor: 'white' }}
+        className="!w-4 !h-4 !rounded-full !border-2 hover:!scale-125 !-right-2 !shadow-md transition-transform duration-150"
       />
 
       {/* Header */}

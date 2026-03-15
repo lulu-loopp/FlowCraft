@@ -8,12 +8,16 @@ import { BottomPanel } from '@/components/layout/bottom-panel';
 
 export default function CanvasPage() {
   return (
-    <div className="w-screen min-h-[100dvh] relative overflow-hidden bg-slate-50/50">
+    <div className="w-screen h-[100dvh] flex flex-col overflow-hidden bg-white">
       <TopToolbar />
-      <LeftPanel />
-      <FlowEditor />
-      <RightPanel />
-      <BottomPanel />
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        <LeftPanel />
+        <div className="flex flex-1 flex-col min-w-0 overflow-hidden bg-slate-50">
+          <FlowEditor />
+          <BottomPanel />
+        </div>
+        <RightPanel />
+      </div>
     </div>
   );
 }

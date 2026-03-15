@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Panel } from '../ui/panel';
 import { FolderOpen, Clock } from 'lucide-react';
 import { Tabs } from '../ui/tabs';
 import { useFlowStore } from '@/store/flowStore';
@@ -27,12 +26,9 @@ export function RightPanel() {
   ];
 
   return (
-    <Panel
-      className="absolute top-24 bottom-4 right-4 w-80 flex flex-col overflow-hidden transition-transform duration-300"
-      style={{ zIndex: 'var(--z-panel)' } as React.CSSProperties}
-    >
+    <div className="w-80 bg-white border-l border-slate-200 flex flex-col overflow-hidden shrink-0">
       {/* Tabs header */}
-      <div className="px-3 py-3 border-b border-slate-100 shrink-0">
+      <div className="px-3 py-3 border-b border-slate-200 shrink-0">
         <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
       </div>
 
@@ -88,6 +84,6 @@ export function RightPanel() {
           </div>
         )}
       </div>
-    </Panel>
+    </div>
   );
 }

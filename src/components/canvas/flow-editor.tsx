@@ -59,7 +59,7 @@ function FlowCanvas() {
   );
 
   return (
-    <div className="absolute inset-0 z-0 bg-slate-50/50" ref={reactFlowWrapper}>
+    <div className="w-full h-full relative" ref={reactFlowWrapper}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -77,13 +77,19 @@ function FlowCanvas() {
         fitView
       >
         <Background gap={20} size={1} color="#cbd5e1" />
-        <Controls className="!mb-[100px] !ml-6" />
+        <Controls className="!mb-4 !ml-4" />
         <MiniMap
-          className="!bottom-[100px] !right-[356px]"
-          nodeColor="#0d9488"
+          className="!bottom-4 !right-4"
+          nodeColor={(node) => {
+            const colors: Record<string, string> = {
+              agent: '#6366f1', tool: '#10b981', skill: '#f59e0b',
+              human: '#f43f5e', io: '#0ea5e9', condition: '#64748b',
+              initializer: '#8b5cf6',
+            };
+            return colors[node.type ?? ''] ?? '#94a3b8';
+          }}
           nodeStrokeWidth={0}
-          maskColor="rgba(241,245,249,0.7)"
-          style={{ borderRadius: 12, border: '1px solid rgba(226,232,240,0.8)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+          maskColor="rgba(241,245,249,0.75)"
           zoomable
           pannable
         />
@@ -105,8 +111,10 @@ function FlowCanvas() {
 
 export function FlowEditor() {
   return (
-    <ReactFlowProvider>
-      <FlowCanvas />
-    </ReactFlowProvider>
+    <div className="flex-1 min-h-0 overflow-hidden">
+      <ReactFlowProvider>
+        <FlowCanvas />
+      </ReactFlowProvider>
+    </div>
   );
 }

@@ -30,10 +30,7 @@ export function TopToolbar() {
   };
 
   return (
-    <header
-      className="absolute top-4 left-4 right-4 h-14 glass-panel rounded-2xl flex items-center justify-between px-5"
-      style={{ zIndex: 'var(--z-toolbar)' } as React.CSSProperties}
-    >
+    <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-5 shrink-0">
       {/* Left: brand + flow name */}
       <div className="flex items-center gap-3 min-w-0">
         {/* Brand mark */}

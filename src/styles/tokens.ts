@@ -1,10 +1,10 @@
 export const NodeColors = {
   agent: {
-    bg: 'bg-teal-50',
-    border: 'border-teal-500',
-    text: 'text-teal-700',
-    badge: 'bg-teal-100 text-teal-700',
-    hex: '#0d9488'
+    bg: 'bg-indigo-50',
+    border: 'border-indigo-500',
+    text: 'text-indigo-700',
+    badge: 'bg-indigo-100 text-indigo-700',
+    hex: '#6366f1'
   },
   tool: {
     bg: 'bg-emerald-50',

@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Panel } from '../ui/panel';
 import { Bot, Wrench, Lightbulb, User, ArrowRightLeft, GitBranch, PlayCircle, Layers, Search, ChevronDown } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 
 const NODE_TYPES = [
-  { type: 'agent',       icon: Bot,           color: 'text-teal-600',    bg: 'bg-teal-50',    key: 'node.agent'       },
+  { type: 'agent',       icon: Bot,           color: 'text-indigo-600', bg: 'bg-indigo-50',  key: 'node.agent'       },
   { type: 'tool',        icon: Wrench,         color: 'text-emerald-600', bg: 'bg-emerald-50', key: 'node.tool'        },
   { type: 'skill',       icon: Lightbulb,      color: 'text-amber-600',  bg: 'bg-amber-50',   key: 'node.skill'       },
   { type: 'human',       icon: User,           color: 'text-rose-600',   bg: 'bg-rose-50',    key: 'node.human'       },
@@ -33,10 +32,7 @@ export function LeftPanel() {
   );
 
   return (
-    <Panel
-      className="absolute top-24 bottom-4 left-4 w-64 flex flex-col overflow-hidden"
-      style={{ zIndex: 'var(--z-panel)' } as React.CSSProperties}
-    >
+    <div className="w-64 bg-white border-r border-slate-200 flex flex-col overflow-hidden shrink-0">
       {/* Header */}
       <div className="px-4 py-3 border-b border-slate-100/60">
         <h2 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
@@ -109,6 +105,6 @@ export function LeftPanel() {
           )}
         </div>
       </div>
-    </Panel>
+    </div>
   );
 }

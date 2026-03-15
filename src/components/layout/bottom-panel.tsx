@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Panel } from '../ui/panel';
 import { ChevronUp, ChevronDown, Terminal, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Tabs } from '../ui/tabs';
@@ -9,7 +8,7 @@ import { useFlowStore } from '@/store/flowStore';
 import { useUIStore } from '@/store/uiStore';
 
 const LOG_TYPE_STYLE: Record<string, string> = {
-  think:   'bg-teal-100 text-teal-600',
+  think:   'bg-indigo-100 text-indigo-600',
   act:     'bg-teal-100 text-teal-700',
   observe: 'bg-amber-100 text-amber-700',
   system:  'bg-slate-100 text-slate-500',
@@ -32,16 +31,13 @@ export function BottomPanel() {
   ];
 
   return (
-    <Panel
-      className={`absolute bottom-4 flex flex-col transition-all duration-300 ${isExpanded ? 'h-64' : 'h-14'}`}
-      style={{
-        left: 'var(--panel-left-offset)',
-        right: 'var(--panel-right-offset)',
-        zIndex: 'var(--z-panel)',
-      } as React.CSSProperties}
+    <div
+      className={`bg-white border-t border-slate-200 flex flex-col shrink-0 transition-all duration-300 ${
+        isExpanded ? 'h-56' : 'h-[46px]'
+      }`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 h-14 shrink-0">
+      <div className="flex items-center justify-between px-4 h-[46px] shrink-0">
         <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} className="bg-transparent w-52" />
 
         <div className="flex items-center gap-1">
@@ -71,7 +67,7 @@ export function BottomPanel() {
 
       {/* Content */}
       {isExpanded && (
-        <div className="flex-1 overflow-hidden border-t border-slate-100/60">
+        <div className="flex-1 overflow-hidden border-t border-slate-100">
           {activeTab === 'execution' ? (
             <div className="h-full overflow-y-auto px-3 py-2 space-y-px">
               {globalLogs.length === 0 && (
@@ -102,7 +98,7 @@ export function BottomPanel() {
               <div ref={logsEndRef} />
             </div>
           ) : (
-            <div className="h-full overflow-y-auto bg-slate-950/[0.02] rounded-b-xl px-4 py-3 font-mono text-xs text-slate-500">
+            <div className="h-full overflow-y-auto bg-slate-50 px-4 py-3 font-mono text-xs text-slate-500">
               <div className="flex items-center gap-2">
                 <Terminal className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 <span>{t('panel.bottom.terminalReady')}</span>
@@ -111,6 +107,6 @@ export function BottomPanel() {
           )}
         </div>
       )}
-    </Panel>
+    </div>
   );
 }
