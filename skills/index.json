@@ -1,0 +1,20 @@
+{
+  "skills": [
+    {
+      "name": "skill-creator",
+      "description": "Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a skill from scratch, edit, or optimize an existing skill, run evals to test a skill, benchmark skill performance with variance analysis, or optimize a skills description for better triggering accuracy.",
+      "source": "https://github.com/anthropics/skills/blob/main/skills/skill-creator/SKILL.md",
+      "installedAt": 1773537849874,
+      "enabled": true,
+      "path": "skills/skill-creator"
+    },
+    {
+      "name": "algorithmic-art",
+      "description": "Creating algorithmic art using p5.js with seeded randomness and interactive parameter exploration. Use this when users request creating art using code, generative art, algorithmic art, flow fields, or particle systems. Create original algorithmic art rather than copying existing artists work to avoid copyright violations.",
+      "source": "https://github.com/anthropics/skills/tree/main/skills/algorithmic-art",
+      "installedAt": 1773537894317,
+      "enabled": true,
+      "path": "skills/algorithmic-art"
+    }
+  ]
+}
