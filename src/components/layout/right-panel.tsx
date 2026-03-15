@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { FolderOpen, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FolderOpen, Clock, ChevronRight } from 'lucide-react';
 import { Tabs } from '../ui/tabs';
 import { useFlowStore } from '@/store/flowStore';
 import { useUIStore } from '@/store/uiStore';
@@ -12,6 +12,11 @@ export function RightPanel() {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const { selectedNodeId, nodes } = useFlowStore();
   const { t } = useUIStore();
+
+  // Auto-expand when a node is selected
+  React.useEffect(() => {
+    if (selectedNodeId) setIsCollapsed(false);
+  }, [selectedNodeId]);
 
   const selectedNode = React.useMemo(
     () => nodes.find((n) => n.id === selectedNodeId),
@@ -26,35 +31,37 @@ export function RightPanel() {
     { id: 'history', label: t('panel.right.history') },
   ];
 
-  if (isCollapsed) {
-    return (
-      <div className="w-9 bg-white border-l border-slate-200 flex flex-col items-center py-3 shrink-0">
-        <button
-          onClick={() => setIsCollapsed(false)}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-          title="Expand panel"
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="w-80 bg-white border-l border-slate-200 flex flex-col overflow-hidden shrink-0">
-      {/* Tabs header + collapse button */}
-      <div className="px-3 py-3 border-b border-slate-200 shrink-0 flex items-center gap-2">
-        <button
-          onClick={() => setIsCollapsed(true)}
-          className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors shrink-0"
-          title="Collapse panel"
+    // Single element — width transition animates between collapsed/expanded
+    <div
+      className="bg-white border-l border-slate-200 flex flex-col overflow-hidden shrink-0"
+      style={{ width: isCollapsed ? 36 : 320, transition: 'width 200ms ease-in-out' }}
+    >
+      {/* Tabs header — relative so collapse button can be absolute */}
+      <div className="relative border-b border-slate-200 shrink-0 px-3 py-3">
+        <div
+          style={{ opacity: isCollapsed ? 0 : 1, transition: 'opacity 150ms ease-in-out', pointerEvents: isCollapsed ? 'none' : 'auto' }}
         >
-          <ChevronRight className="w-4 h-4" />
+          <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+        </div>
+        {/* Collapse button — absolute top-right, never takes layout space */}
+        <button
+          onClick={() => setIsCollapsed(o => !o)}
+          className="absolute top-2 right-2 p-1 rounded-md text-slate-300 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          title={isCollapsed ? 'Expand' : 'Collapse'}
+        >
+          <ChevronRight
+            className="w-3.5 h-3.5 transition-transform duration-200"
+            style={{ transform: isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)' }}
+          />
         </button>
-        <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} className="flex-1" />
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      {/* Scrollable content */}
+      <div
+        className="flex-1 overflow-y-auto p-4"
+        style={{ opacity: isCollapsed ? 0 : 1, pointerEvents: isCollapsed ? 'none' : 'auto', transition: 'opacity 120ms ease-in-out' }}
+      >
         {/* Config tab */}
         {activeTab === 'config' && !selectedNode && (
           <div className="flex flex-col items-center justify-center h-full gap-2 text-center px-4">
