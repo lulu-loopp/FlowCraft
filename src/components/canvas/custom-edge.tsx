@@ -42,21 +42,20 @@ export function CustomEdge({
 
   return (
     <>
-      <g className={isRunning ? 'running-edge-anim' : ''}>
-        <BaseEdge
-          id={id}
-          path={edgePath}
-          markerEnd={markerEnd}
-          style={{
-            ...style,
-            strokeWidth: isRunning || selected ? 3 : 2,
-            stroke: edgeColor,
-            strokeDasharray: isRunning ? '6 4' : 'none',
-            filter: selected ? 'drop-shadow(0 0 6px rgba(13,148,136,0.5))' : 'none',
-            transition: 'stroke 0.3s, stroke-width 0.3s',
-          }}
-        />
-      </g>
+      <BaseEdge
+        id={id}
+        path={edgePath}
+        markerEnd={markerEnd}
+        className={isRunning ? 'running-edge-path' : ''}
+        style={{
+          ...style,
+          strokeWidth: isRunning || selected ? 3 : 2,
+          stroke: edgeColor,
+          strokeDasharray: isRunning ? '6 4' : undefined,
+          filter: selected ? 'drop-shadow(0 0 6px rgba(13,148,136,0.5))' : undefined,
+          transition: 'stroke 0.3s, stroke-width 0.3s',
+        }}
+      />
 
       {selected && (
         <foreignObject

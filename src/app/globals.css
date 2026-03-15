@@ -57,8 +57,8 @@ body {
   filter: drop-shadow(0 0 3px currentColor);
 }
 
-/* Running edge: animates stroke-dashoffset on the react-flow path */
-.running-edge-anim path.react-flow__edge-path {
+/* Running edge: className applied directly to the path via BaseEdge className prop */
+path.running-edge-path {
   animation: dash-animation 0.65s linear infinite;
 }
 

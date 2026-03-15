@@ -74,6 +74,7 @@ function FlowCanvas() {
         defaultEdgeOptions={{ type: 'custom' }}
         onNodeClick={(_, node) => setSelectedNodeId(node.id)}
         onPaneClick={() => setSelectedNodeId(null)}
+        proOptions={{ hideAttribution: true }}
         fitView
       >
         <Background gap={20} size={1} color="#cbd5e1" />

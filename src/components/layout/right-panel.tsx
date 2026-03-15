@@ -13,9 +13,12 @@ export function RightPanel() {
   const { selectedNodeId, nodes } = useFlowStore();
   const { t } = useUIStore();
 
-  // Auto-expand when a node is selected
+  // Auto-expand and switch to config tab when a node is selected
   React.useEffect(() => {
-    if (selectedNodeId) setIsCollapsed(false);
+    if (selectedNodeId) {
+      setIsCollapsed(false);
+      setActiveTab('config');
+    }
   }, [selectedNodeId]);
 
   const selectedNode = React.useMemo(
