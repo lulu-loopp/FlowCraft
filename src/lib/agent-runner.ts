@@ -5,6 +5,8 @@ import type { SkillEntry } from '@/types/registry'
 import { runWithAnthropic } from './models/anthropic'
 import { runWithOpenAI } from './models/openai'
 
+export type InputImage = { base64: string; mimeType: string; name: string }
+
 export interface RunAgentOptions {
   config: AgentConfig
   goal: string
@@ -12,6 +14,7 @@ export interface RunAgentOptions {
   onToken?: (token: string) => void
   history?: { role: 'user' | 'assistant', content: string }[]
   enabledSkills?: SkillEntry[]
+  inputImages?: InputImage[]
 }
 
 export async function buildSystemPromptWithSkills(
@@ -60,19 +63,19 @@ export async function executeServerTool(
   throw new Error(`Unknown server tool: ${toolName}`)
 }
 
-export async function runAgent({ config, goal, onStep, onToken, history, enabledSkills }: RunAgentOptions) {
+export async function runAgent({ config, goal, onStep, onToken, history, enabledSkills, inputImages }: RunAgentOptions) {
   const { model, tools, maxIterations } = config
   const systemPrompt = await buildSystemPrompt(config.systemPrompt, enabledSkills)
 
   switch (model.provider) {
     case 'anthropic':
       return runWithAnthropic(
-        model, systemPrompt, goal, tools, maxIterations, onStep, onToken, history
+        model, systemPrompt, goal, tools, maxIterations, onStep, onToken, history, inputImages
       )
     case 'openai':
     case 'deepseek':
       return runWithOpenAI(
-        model, systemPrompt, goal, tools, maxIterations, onStep, onToken, history
+        model, systemPrompt, goal, tools, maxIterations, onStep, onToken, history, inputImages
       )
     default:
       throw new Error(`Unknown provider: ${model.provider}`)

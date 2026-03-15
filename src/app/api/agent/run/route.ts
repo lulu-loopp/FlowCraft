@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
     goal: string
     enabledTools: ToolName[]
     enabledSkills: SkillName[]
+    inputImages?: Array<{ base64: string; mimeType: string; name: string }>
   }
 
   const apiKey = getModelApiKey(body.config.model.provider)
@@ -73,6 +74,7 @@ export async function POST(req: NextRequest) {
         const result = await runAgent({
           config,
           goal: body.goal,
+          inputImages: body.inputImages,
           onStep:  (step)  => send({ type: 'step',  data: step }),
           onToken: (token) => send({ type: 'token', data: token }),
         })

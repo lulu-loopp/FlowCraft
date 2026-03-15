@@ -1,12 +1,15 @@
 import { AgentNode } from './agent-node';
 import { GenericNode } from './generic-node';
+import { InputNode } from './input-node';
+import { OutputNode } from './output-node';
 
 export const nodeTypes = {
   agent: AgentNode,
   tool: (props: any) => <GenericNode {...props} type="tool" />,
   skill: (props: any) => <GenericNode {...props} type="skill" />,
   human: (props: any) => <GenericNode {...props} type="human" />,
-  io: (props: any) => <GenericNode {...props} type="io" />,
+  io: InputNode,
   condition: (props: any) => <GenericNode {...props} type="control" />,
   initializer: (props: any) => <GenericNode {...props} type="system" />,
+  output: OutputNode,
 };

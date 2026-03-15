@@ -4,10 +4,12 @@ import { useCallback } from 'react'
 import { useFlowStore } from '@/store/flowStore'
 import { topologicalSort, areUpstreamsComplete } from '@/lib/flow-executor'
 import type { Node } from '@xyflow/react'
+import type { InputFile } from '@/components/canvas/nodes/input-node'
 
 async function executeAgentNode(
   node: Node,
   input: string,
+  inputImages: InputFile[],
   onStep: (step: any) => void,
   onToken: (token: string) => void,
 ): Promise<string> {
@@ -29,6 +31,7 @@ async function executeAgentNode(
         maxIterations: (data.maxIterations as number) || 10,
       },
       goal: input,
+      inputImages: inputImages.map(f => ({ base64: f.base64, mimeType: f.mimeType, name: f.name })),
       enabledTools: (data.enabledTools as string[]) || [],
       enabledSkills: (data.enabledSkills as string[]) || [],
     }),
@@ -50,16 +53,12 @@ async function executeAgentNode(
       let event: any
       try { event = JSON.parse(line.slice(6)) } catch { continue }
 
-      if (event.type === 'token') {
-        onToken(event.data)
-      }
+      if (event.type === 'token') onToken(event.data)
       if (event.type === 'step') {
         onStep(event.data)
         if (event.data.type === 'done') finalOutput = event.data.content
       }
-      if (event.type === 'done') {
-        finalOutput = event.data || finalOutput
-      }
+      if (event.type === 'done') finalOutput = event.data || finalOutput
     }
   }
 
@@ -84,8 +83,18 @@ export function useFlowExecution() {
     const completedNodeIds = new Set<string>()
     const nodeOutputs = new Map<string, string>()
 
+    // Read input node data
     const inputNode = sortedNodes.find(n => n.type === 'io')
-    const initialInput = userInput || (inputNode?.data?.label as string) || 'Start'
+    const inputData = inputNode?.data as any
+    const inputFiles = (inputData?.inputFiles || []) as InputFile[]
+    const inputImages = inputFiles.filter(f => f.type === 'image')
+    const inputTextFiles = inputFiles.filter(f => f.type === 'text')
+
+    const textFileContent = inputTextFiles
+      .map(f => `\n\n文件内容（${f.name}）：\n${f.content}`)
+      .join('')
+
+    const initialInput = (inputData?.inputText || userInput || 'Start') + textFileContent
 
     if (inputNode) {
       completedNodeIds.add(inputNode.id)
@@ -107,7 +116,6 @@ export function useFlowExecution() {
 
         const nodeInput = upstreamOutputs || initialInput
 
-        // Mark as running
         useFlowStore.getState().setNodes(
           useFlowStore.getState().nodes.map(n =>
             n.id === node.id
@@ -127,9 +135,14 @@ export function useFlowExecution() {
           let output = ''
 
           if (node.type === 'agent') {
+            // Only pass images to the first agent node receiving from input
+            const isDirectlyAfterInput = inputNode
+              ? edges.some(e => e.source === inputNode.id && e.target === node.id)
+              : false
+            const nodeImages = isDirectlyAfterInput ? inputImages : []
+
             output = await executeAgentNode(
-              node,
-              nodeInput,
+              node, nodeInput, nodeImages,
               (step) => {
                 const logType =
                   step.type === 'thinking' ? 'think'

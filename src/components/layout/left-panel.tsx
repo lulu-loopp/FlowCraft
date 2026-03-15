@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Bot, Wrench, Lightbulb, User, ArrowRightLeft, GitBranch, PlayCircle, Layers, Search, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Bot, Wrench, Lightbulb, User, ArrowRightLeft, ArrowLeft, GitBranch, PlayCircle, Layers, Search, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 
 const NODE_TYPES = [
@@ -10,6 +10,7 @@ const NODE_TYPES = [
   { type: 'skill',       icon: Lightbulb,      color: 'text-amber-600',  bg: 'bg-amber-50',   key: 'node.skill'       },
   { type: 'human',       icon: User,           color: 'text-rose-600',   bg: 'bg-rose-50',    key: 'node.human'       },
   { type: 'io',          icon: ArrowRightLeft, color: 'text-sky-600',    bg: 'bg-sky-50',     key: 'node.io'          },
+  { type: 'output',      icon: ArrowLeft,      color: 'text-slate-500',  bg: 'bg-slate-50',   key: 'node.output'      },
   { type: 'condition',   icon: GitBranch,      color: 'text-slate-600',  bg: 'bg-slate-100',  key: 'node.condition'   },
   { type: 'initializer', icon: PlayCircle,     color: 'text-violet-600', bg: 'bg-violet-50',  key: 'node.initializer' },
 ] as const;

@@ -2,7 +2,7 @@ import OpenAI from 'openai'
 import type { ModelConfig } from '@/types/model'
 import type { Tool } from '@/types/tool'
 import type { AgentStep } from '@/types/agent'
-import { SERVER_TOOLS, executeServerTool } from '@/lib/agent-runner'
+import { SERVER_TOOLS, executeServerTool, type InputImage } from '@/lib/agent-runner'
 
 interface RunResult {
   steps: AgentStep[]
@@ -39,13 +39,29 @@ export async function runWithOpenAI(
   maxIterations: number,
   onStep: (step: AgentStep) => void,
   onToken?: (token: string) => void,
-  history?: { role: 'user' | 'assistant', content: string }[]
+  history?: { role: 'user' | 'assistant', content: string }[],
+  inputImages?: InputImage[]
 ): Promise<RunResult> {
   const client = createClient(config)
+
+  const firstUserMessage: any =
+    inputImages && inputImages.length > 0
+      ? {
+          role: 'user',
+          content: [
+            { type: 'text', text: goal },
+            ...inputImages.map(img => ({
+              type: 'image_url',
+              image_url: { url: `data:${img.mimeType};base64,${img.base64}` },
+            })),
+          ],
+        }
+      : { role: 'user', content: goal }
+
   const messages: OpenAI.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
     ...(history ?? []),
-    { role: 'user', content: goal },
+    firstUserMessage,
   ]
   const steps: AgentStep[] = []
   let finalOutput = ''

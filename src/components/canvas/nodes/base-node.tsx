@@ -13,6 +13,7 @@ export interface BaseNodeProps {
   status?: 'idle' | 'running' | 'success' | 'error' | 'waiting';
   selected?: boolean;
   children?: React.ReactNode;
+  onDoubleClick?: () => void;
 }
 
 const ICONS = {
@@ -25,7 +26,7 @@ const ICONS = {
   system: PlayCircle,
 };
 
-export function BaseNode({ id, type, label, description, status = 'idle', selected, children }: BaseNodeProps) {
+export function BaseNode({ id, type, label, description, status = 'idle', selected, children, onDoubleClick }: BaseNodeProps) {
   const { removeNode, duplicateNode, toggleNodeLock, nodes } = useFlowStore();
   const theme = NodeColors[type] || NodeColors.agent;
   const Icon = ICONS[type] || Bot;
@@ -44,6 +45,7 @@ export function BaseNode({ id, type, label, description, status = 'idle', select
         ${selected ? theme.border : 'border-transparent'}
         ${isWaiting ? 'opacity-60' : ''}
         ${isLocked ? 'nopan' : ''}`}
+      onDoubleClick={onDoubleClick}
     >
       {/* ── Inline toolbar (scales naturally with canvas) ── */}
       {selected && (

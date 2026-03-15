@@ -17,7 +17,8 @@ export const translations = {
     'node.tool': 'Tool',
     'node.skill': 'Skill',
     'node.human': 'Human',
-    'node.io': 'I/O',
+    'node.io': 'Input',
+    'node.output': 'Output',
     'node.condition': 'Condition',
     'node.initializer': 'Initializer',
     // Right panel
@@ -76,7 +77,8 @@ export const translations = {
     'node.tool': '工具',
     'node.skill': '技能',
     'node.human': '人工',
-    'node.io': '输入/输出',
+    'node.io': '输入',
+    'node.output': '输出',
     'node.condition': '条件',
     'node.initializer': '触发器',
     // Right panel

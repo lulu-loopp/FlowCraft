@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { ModelConfig } from '@/types/model'
 import type { Tool } from '@/types/tool'
 import type { AgentStep } from '@/types/agent'
-import { SERVER_TOOLS, executeServerTool } from '@/lib/agent-runner'
+import { SERVER_TOOLS, executeServerTool, type InputImage } from '@/lib/agent-runner'
 
 interface RunResult {
   steps: AgentStep[]
@@ -26,12 +26,25 @@ export async function runWithAnthropic(
   maxIterations: number,
   onStep: (step: AgentStep) => void,
   onToken?: (token: string) => void,
-  history?: { role: 'user' | 'assistant', content: string }[]
+  history?: { role: 'user' | 'assistant', content: string }[],
+  inputImages?: InputImage[]
 ): Promise<RunResult> {
   const client = new Anthropic({ apiKey: config.apiKey })
+
+  let firstUserContent: Anthropic.MessageParam['content']
+  if (inputImages && inputImages.length > 0) {
+    const content: any[] = [{ type: 'text', text: goal }]
+    for (const img of inputImages) {
+      content.push({ type: 'image', source: { type: 'base64', media_type: img.mimeType, data: img.base64 } })
+    }
+    firstUserContent = content
+  } else {
+    firstUserContent = goal
+  }
+
   const messages: Anthropic.MessageParam[] = [
     ...(history ?? []),
-    { role: 'user', content: goal },
+    { role: 'user', content: firstUserContent },
   ]
   const steps: AgentStep[] = []
   let finalOutput = ''
