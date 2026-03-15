@@ -10,16 +10,16 @@ import { AgentConfigPanel } from './agent-config-panel';
 export function RightPanel() {
   const [activeTab, setActiveTab] = React.useState('config');
   const [isCollapsed, setIsCollapsed] = React.useState(false);
-  const { selectedNodeId, nodes } = useFlowStore();
+  const { selectedNodeId, nodes, nodeClickTick } = useFlowStore();
   const { t } = useUIStore();
 
-  // Auto-expand and switch to config tab when a node is selected
+  // Auto-expand and switch to config tab when a node is clicked (including re-clicks)
   React.useEffect(() => {
     if (selectedNodeId) {
       setIsCollapsed(false);
       setActiveTab('config');
     }
-  }, [selectedNodeId]);
+  }, [nodeClickTick]);
 
   const selectedNode = React.useMemo(
     () => nodes.find((n) => n.id === selectedNodeId),

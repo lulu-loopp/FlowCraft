@@ -23,6 +23,7 @@ type FlowState = {
   nodes: Node[];
   edges: Edge[];
   selectedNodeId: string | null;
+  nodeClickTick: number;
   isRunning: boolean;
   globalLogs: GlobalLog[];
   onNodesChange: (changes: NodeChange[]) => void;
@@ -45,6 +46,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   nodes: [],
   edges: [],
   selectedNodeId: null,
+  nodeClickTick: 0,
   isRunning: false,
   globalLogs: [
     {
@@ -78,7 +80,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   
   onConnect: (connection) => {
     set({
-      edges: addEdge({ ...connection, animated: true, className: 'animated-edge' }, get().edges),
+      edges: addEdge({ ...connection }, get().edges),
     });
   },
 
@@ -121,7 +123,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     });
   },
 
-  setSelectedNodeId: (id) => set({ selectedNodeId: id }),
+  setSelectedNodeId: (id) => set({ selectedNodeId: id, nodeClickTick: get().nodeClickTick + 1 }),
   setIsRunning: (running) => set({ isRunning: running }),
   
   addLog: (log) => {
