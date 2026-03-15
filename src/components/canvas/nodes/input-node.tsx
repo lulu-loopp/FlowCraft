@@ -2,7 +2,7 @@
 import React from 'react'
 import { Handle, Position, NodeProps } from '@xyflow/react'
 import { useFlowStore } from '@/store/flowStore'
-import { Upload, X, FileText } from 'lucide-react'
+import { Upload, X, FileText, CheckCircle2 } from 'lucide-react'
 
 export interface InputFile {
   name: string
@@ -84,7 +84,7 @@ export function InputNode({ id, data, selected }: NodeProps) {
           </div>
           <span className="font-semibold text-sm text-slate-800">Input</span>
         </div>
-        {isSuccess && <svg className="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>}
+        {isSuccess && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
         {isRunning && <span className="text-[10px] text-sky-500 font-medium animate-pulse">Loading...</span>}
       </div>
 

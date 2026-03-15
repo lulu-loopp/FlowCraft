@@ -159,6 +159,17 @@ path.running-edge-path {
 /* Suppress default selection box — nodes handle selection visually */
 .react-flow__node:focus { outline: none; }
 .react-flow__node.selected { box-shadow: none !important; }
+
+/* Override ReactFlow's built-in 'input'/'output' node default styles
+   so our custom InputNode/OutputNode don't get the white-box defaults */
+.react-flow__node-input,
+.react-flow__node-output {
+  background: transparent !important;
+  border: none !important;
+  width: auto !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
 .react-flow__controls {
   border-radius: 12px;
   overflow: hidden;
