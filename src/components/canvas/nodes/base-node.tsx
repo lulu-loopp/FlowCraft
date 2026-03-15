@@ -54,7 +54,7 @@ export function BaseNode({ id, type, label, description, status = 'idle', select
           <div className="flex gap-1 bg-white/95 p-1 rounded-lg shadow-xl shadow-slate-200/50 border border-slate-200 backdrop-blur-md">
             {/* Duplicate */}
             <button
-              className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 active:scale-90 rounded-md transition-all"
+              className="p-2 text-slate-500 hover:text-teal-600 hover:bg-teal-50 active:scale-90 rounded-md transition-all"
               onClick={(e) => { e.stopPropagation(); duplicateNode(id); }}
               title="Duplicate"
             >
@@ -109,12 +109,12 @@ export function BaseNode({ id, type, label, description, status = 'idle', select
       <Handle
         type="target"
         position={Position.Left}
-        className="w-5 h-5 bg-white border-4 border-slate-300 hover:border-indigo-400 transition-colors !-left-2.5 shadow-sm"
+        className="!w-4 !h-4 !rounded-full !bg-teal-500 !border-2 !border-white hover:!bg-teal-400 hover:!scale-125 !-left-2 !shadow-md transition-transform duration-150"
       />
       <Handle
         type="source"
         position={Position.Right}
-        className="w-5 h-5 bg-white border-4 border-slate-400 hover:border-indigo-400 transition-colors !-right-2.5 shadow-sm"
+        className="!w-4 !h-4 !rounded-full !bg-teal-500 !border-2 !border-white hover:!bg-teal-400 hover:!scale-125 !-right-2 !shadow-md transition-transform duration-150"
       />
 
       {/* Header */}

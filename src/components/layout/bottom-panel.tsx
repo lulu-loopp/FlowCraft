@@ -9,7 +9,7 @@ import { useFlowStore } from '@/store/flowStore';
 import { useUIStore } from '@/store/uiStore';
 
 const LOG_TYPE_STYLE: Record<string, string> = {
-  think:   'bg-indigo-100 text-indigo-600',
+  think:   'bg-teal-100 text-teal-600',
   act:     'bg-teal-100 text-teal-700',
   observe: 'bg-amber-100 text-amber-700',
   system:  'bg-slate-100 text-slate-500',

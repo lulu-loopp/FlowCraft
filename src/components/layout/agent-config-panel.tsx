@@ -91,7 +91,7 @@ function DropdownSelect({
               onClick={() => { onChange(opt.value); setOpen(false); }}
               className={`w-full px-3 py-2.5 text-left text-sm transition-colors ${
                 opt.value === value
-                  ? 'text-indigo-600 font-medium bg-indigo-50/80'
+                  ? 'text-teal-700 font-medium bg-teal-50'
                   : 'text-slate-700 hover:bg-slate-50'
               }`}
             >
@@ -121,12 +121,12 @@ function ToggleChip({
       onClick={() => onChange(!checked)}
       className={`relative flex items-center gap-2 text-xs rounded-lg px-2.5 py-2 border transition-all text-left ${
         checked
-          ? 'bg-slate-800 text-white border-slate-700'
-          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+          ? 'bg-teal-600 text-white border-teal-500 shadow-sm'
+          : 'bg-white text-slate-600 border-slate-200 hover:border-teal-200 hover:bg-teal-50/50'
       }`}
     >
       {checked && (
-        <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-[0_0_4px_1px_rgba(99,102,241,0.6)]" />
+        <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-white/70" />
       )}
       <span className="truncate pr-2">{label}</span>
     </button>

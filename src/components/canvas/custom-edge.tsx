@@ -36,9 +36,9 @@ export function CustomEdge({
   const isError = data?.status === 'error';
 
   let edgeColor = '#94a3b8';
-  if (isRunning) edgeColor = '#3b82f6';
+  if (isRunning) edgeColor = '#0d9488';
   if (isError) edgeColor = '#f43f5e';
-  if (selected) edgeColor = '#4f46e5';
+  if (selected) edgeColor = '#0d9488';
 
   return (
     <>
@@ -51,7 +51,7 @@ export function CustomEdge({
           strokeWidth: isRunning || selected ? 3 : 2,
           stroke: edgeColor,
           strokeDasharray: isRunning ? '5 5' : 'none',
-          filter: selected ? 'drop-shadow(0 0 6px rgba(79,70,229,0.5))' : 'none',
+          filter: selected ? 'drop-shadow(0 0 6px rgba(13,148,136,0.5))' : 'none',
           transition: 'stroke 0.3s, stroke-width 0.3s',
         }}
       />

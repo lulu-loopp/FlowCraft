@@ -78,6 +78,15 @@ function FlowCanvas() {
       >
         <Background gap={20} size={1} color="#cbd5e1" />
         <Controls className="!mb-[100px] !ml-6" />
+        <MiniMap
+          className="!bottom-[100px] !right-[356px]"
+          nodeColor="#0d9488"
+          nodeStrokeWidth={0}
+          maskColor="rgba(241,245,249,0.7)"
+          style={{ borderRadius: 12, border: '1px solid rgba(226,232,240,0.8)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+          zoomable
+          pannable
+        />
       </ReactFlow>
 
       {selectedNodesCount > 1 && (

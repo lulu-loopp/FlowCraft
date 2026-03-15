@@ -91,12 +91,13 @@ body {
 /* ── Edge delete button ─────────────────────────────────────── */
 .edge-delete-btn {
   opacity: 0;
-  animation: simple-fade-in 0.15s ease-out forwards;
+  transform: scale(0.5);
+  animation: edge-btn-appear 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-@keyframes simple-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+@keyframes edge-btn-appear {
+  from { opacity: 0; transform: scale(0.5); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
 /* ── Thinking dots ──────────────────────────────────────────── */
