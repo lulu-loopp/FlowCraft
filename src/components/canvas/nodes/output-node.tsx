@@ -45,6 +45,7 @@ export function OutputNode({ id, data, selected }: NodeProps) {
         status={status as any}
         selected={selected}
         onDoubleClick={() => output && setShowModal(true)}
+        hideSourceHandle
       >
         {/* Action buttons */}
         {output && (

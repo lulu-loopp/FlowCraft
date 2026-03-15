@@ -14,6 +14,7 @@ export interface BaseNodeProps {
   selected?: boolean;
   children?: React.ReactNode;
   onDoubleClick?: () => void;
+  hideSourceHandle?: boolean;
 }
 
 const ICONS = {
@@ -27,7 +28,7 @@ const ICONS = {
   output: Inbox,
 };
 
-export function BaseNode({ id, type, label, description, status = 'idle', selected, children, onDoubleClick }: BaseNodeProps) {
+export function BaseNode({ id, type, label, description, status = 'idle', selected, children, onDoubleClick, hideSourceHandle }: BaseNodeProps) {
   const { removeNode, duplicateNode, toggleNodeLock, nodes } = useFlowStore();
   const theme = NodeColors[type] || NodeColors.agent;
   const Icon = ICONS[type] || Bot;
@@ -115,12 +116,14 @@ export function BaseNode({ id, type, label, description, status = 'idle', select
         style={{ background: theme.hex, borderColor: 'white' }}
         className="!w-4 !h-4 !rounded-full !border-2 hover:!scale-125 !-left-2 !shadow-md transition-transform duration-150"
       />
-      <Handle
-        type="source"
-        position={Position.Right}
-        style={{ background: theme.hex, borderColor: 'white' }}
-        className="!w-4 !h-4 !rounded-full !border-2 hover:!scale-125 !-right-2 !shadow-md transition-transform duration-150"
-      />
+      {!hideSourceHandle && (
+        <Handle
+          type="source"
+          position={Position.Right}
+          style={{ background: theme.hex, borderColor: 'white' }}
+          className="!w-4 !h-4 !rounded-full !border-2 hover:!scale-125 !-right-2 !shadow-md transition-transform duration-150"
+        />
+      )}
 
       {/* Header */}
       <div className={`px-4 py-3 border-b border-slate-100 flex items-center justify-between rounded-t-xl ${theme.bg}`}>
