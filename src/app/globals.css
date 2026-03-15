@@ -156,6 +156,9 @@ path.running-edge-path {
 .prose-node a { color: #6366f1; }
 
 /* ── ReactFlow overrides ────────────────────────────────────── */
+/* Suppress default selection box — nodes handle selection visually */
+.react-flow__node:focus { outline: none; }
+.react-flow__node.selected { box-shadow: none !important; }
 .react-flow__controls {
   border-radius: 12px;
   overflow: hidden;

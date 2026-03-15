@@ -138,7 +138,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   addLog: (log) => {
     const newLog = {
       ...log,
-      id: `log-${Date.now()}`,
+      id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       timestamp: new Date().toLocaleTimeString()
     };
     

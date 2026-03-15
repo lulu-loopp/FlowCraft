@@ -1,24 +1,46 @@
 'use client'
 import React from 'react'
+import { createPortal } from 'react-dom'
 import { NodeProps } from '@xyflow/react'
 import { Copy, Maximize2 } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
 import { BaseNode } from './base-node'
 import { OutputModal } from './output-modal'
-import { useCopyToast } from '@/components/ui/copy-toast'
+
+// Inline toast via portal — avoids phantom rect from fixed inside transform
+function CopyToast({ show }: { show: boolean }) {
+  const [mounted, setMounted] = React.useState(false)
+  React.useEffect(() => { setMounted(true) }, [])
+  if (!show || !mounted) return null
+  return createPortal(
+    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-4 py-2 rounded-full shadow-xl z-[200] animate-fade-in-up pointer-events-none">
+      ✓ 已复制到剪贴板
+    </div>,
+    document.body
+  )
+}
 
 export function OutputNode({ id, data, selected }: NodeProps) {
   const [showModal, setShowModal] = React.useState(false)
-  const { copy, Toast } = useCopyToast()
+  const [copied, setCopied] = React.useState(false)
 
   const output = (data?.currentOutput as string) || ''
   const status = data?.status as string
+  const label = (data?.label as string) || 'Output'
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    navigator.clipboard.writeText(output)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
 
   return (
     <>
       <BaseNode
         id={id}
         type="output"
-        label={(data?.label as string) || 'Output'}
+        label={label}
         description="Collects flow result"
         status={status as any}
         selected={selected}
@@ -28,7 +50,7 @@ export function OutputNode({ id, data, selected }: NodeProps) {
         {output && (
           <div className="flex items-center justify-end gap-1 mb-2 -mt-1">
             <button
-              onClick={e => { e.stopPropagation(); copy(output) }}
+              onClick={handleCopy}
               className="p-1 text-slate-400 hover:text-indigo-500 transition-colors rounded"
               title="复制结果"
             >
@@ -47,20 +69,22 @@ export function OutputNode({ id, data, selected }: NodeProps) {
         {!output ? (
           <p className="text-xs text-slate-400 text-center py-3">等待上游节点输出...</p>
         ) : (
-          <div className="text-xs text-slate-600 bg-slate-50 border border-slate-100 rounded-lg p-2 max-h-24 overflow-y-auto leading-relaxed">
-            {output.slice(0, 200)}
-            {output.length > 200 && (
-              <span className="text-slate-400"> ...双击查看全部</span>
-            )}
+          <div className="bg-slate-50 border border-slate-100 rounded-lg p-2 max-h-28 overflow-y-auto">
+            <div className="prose-node text-slate-700">
+              <ReactMarkdown>{output.slice(0, 400)}</ReactMarkdown>
+              {output.length > 400 && (
+                <p className="text-slate-400 text-[10px] mt-1">...双击查看全部</p>
+              )}
+            </div>
           </div>
         )}
       </BaseNode>
 
       {showModal && (
-        <OutputModal isOpen={showModal} onClose={() => setShowModal(false)} title={(data?.label as string) || 'Output'} content={output} nodeType="output" />
+        <OutputModal isOpen={showModal} onClose={() => setShowModal(false)} title={label} content={output} nodeType="output" />
       )}
 
-      <Toast />
+      <CopyToast show={copied} />
     </>
   )
 }

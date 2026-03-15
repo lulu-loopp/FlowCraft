@@ -97,6 +97,18 @@ export function useFlowExecution() {
     const initialInput = (inputData?.inputText || userInput || 'Start') + textFileContent
 
     if (inputNode) {
+      // Animate the input node: briefly running → success
+      useFlowStore.getState().setNodes(
+        useFlowStore.getState().nodes.map(n =>
+          n.id === inputNode.id ? { ...n, data: { ...n.data, status: 'running' } } : n
+        )
+      )
+      await new Promise(r => setTimeout(r, 600))
+      useFlowStore.getState().setNodes(
+        useFlowStore.getState().nodes.map(n =>
+          n.id === inputNode.id ? { ...n, data: { ...n.data, status: 'success' } } : n
+        )
+      )
       completedNodeIds.add(inputNode.id)
       nodeOutputs.set(inputNode.id, initialInput)
     }

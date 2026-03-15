@@ -28,6 +28,9 @@ export function InputNode({ id, data, selected }: NodeProps) {
 
   const inputText = (data?.inputText as string) || ''
   const inputFiles = (data?.inputFiles as InputFile[]) || []
+  const status = (data?.status as string) || 'idle'
+  const isRunning = status === 'running'
+  const isSuccess = status === 'success'
 
   const updateData = (key: string, value: any) => {
     setNodes(nodes.map(n =>
@@ -64,13 +67,25 @@ export function InputNode({ id, data, selected }: NodeProps) {
   }
 
   return (
-    <div className={`min-w-[240px] max-w-[300px] bg-white rounded-xl shadow-sm border-2 transition-all ${selected ? 'border-sky-400' : 'border-transparent'}`}>
+    <div className={`relative min-w-[240px] max-w-[300px] bg-white rounded-xl shadow-sm border-2 transition-all ${selected ? 'border-sky-400' : 'border-transparent'}`}>
+      {/* Running glow ring */}
+      {isRunning && (
+        <div
+          className="node-running-ring"
+          style={{ '--glow-color': '#0ea5e9', borderColor: '#0ea5e966' } as React.CSSProperties}
+        />
+      )}
+
       {/* Header */}
-      <div className="px-4 py-3 bg-sky-50 rounded-t-xl flex items-center gap-2">
-        <div className="p-1.5 rounded-md bg-white shadow-sm">
-          <span className="text-sky-600 text-sm font-bold">→</span>
+      <div className="px-4 py-3 bg-sky-50 rounded-t-xl flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-md bg-white shadow-sm">
+            <span className="text-sky-600 text-sm font-bold">→</span>
+          </div>
+          <span className="font-semibold text-sm text-slate-800">Input</span>
         </div>
-        <span className="font-semibold text-sm text-slate-800">Input</span>
+        {isSuccess && <svg className="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>}
+        {isRunning && <span className="text-[10px] text-sky-500 font-medium animate-pulse">Loading...</span>}
       </div>
 
       {/* Body */}
