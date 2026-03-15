@@ -45,3 +45,9 @@ next-env.d.ts
 !/skills/index.json
 /agents/*/
 !/agents/index.json
+
+# Claude Code local config
+.claude/
+
+# Source reference files
+/flowcraft-source/

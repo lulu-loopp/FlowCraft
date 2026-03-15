@@ -15,6 +15,14 @@
       "installedAt": 1773537894317,
       "enabled": true,
       "path": "skills/algorithmic-art"
+    },
+    {
+      "name": "codex",
+      "description": "Delegate coding tasks to Codex CLI for execution. Only invoke this skill when the user explicitly asks to use Codex — e.g., \"用 codex 来做\", \"让 codex 执行\", \"ask codex to...\", \"codex 帮我写\". Do not proactively delegate to Codex for general coding requests the user didn't specifically ask Codex to handle.",
+      "source": "https://github.com/oil-oil/codex/tree/main",
+      "installedAt": 1742000000000,
+      "enabled": true,
+      "path": "skills/codex"
     }
   ]
 }

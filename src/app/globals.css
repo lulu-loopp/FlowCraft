@@ -1,13 +1,136 @@
-/* Global styles */
+@import "tailwindcss";
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+@theme {
+  --color-background: hsl(210 40% 98%);
+  --color-foreground: hsl(222.2 84% 4.9%);
 }
 
 body {
-  font-family: 'DM Sans', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+
+.canvas-grid-bg {
+  background-size: 20px 20px;
+  background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+}
+
+/* Edge dash animation */
+@keyframes dash-animation {
+  from { stroke-dashoffset: 20; }
+  to { stroke-dashoffset: 0; }
+}
+
+.animated-edge path {
+  animation: dash-animation 1s linear infinite;
+  filter: drop-shadow(0 0 3px currentColor);
+}
+
+/* ===== Breathing Light for Running Nodes ===== */
+@keyframes breath-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px 2px color-mix(in srgb, var(--glow-color, #6366f1) 20%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 24px 8px color-mix(in srgb, var(--glow-color, #6366f1) 50%, transparent);
+  }
+}
+
+.node-running-ring {
+  --glow-color: #6366f1;
+  position: absolute;
+  inset: -3px;
+  border-radius: 14px;
+  border: 2px solid;
+  animation: breath-glow 2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ===== Log fade-in animation ===== */
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ===== Edge delete button – simple fade ===== */
+.edge-delete-btn {
+  opacity: 0;
+  animation: simple-fade-in 0.15s ease-out forwards;
+}
+
+@keyframes simple-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ===== Thinking dots ===== */
+@keyframes jump-dot {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.thinking-dot {
+  animation: jump-dot 1.4s ease-in-out infinite;
+  display: inline-block;
+}
+.thinking-dot:nth-child(1) { animation-delay: 0s; }
+.thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* ===== Dropdown fade-in ===== */
+@keyframes dropdown-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+
+/* ===== Indeterminate loading bar ===== */
+@keyframes indeterminate-bar {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+.node-loading-bar {
+  animation: indeterminate-bar 1.4s ease-in-out infinite;
+}
+
+/* ReactFlow overrides */
+.react-flow__controls {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.react-flow__controls-button {
+  background: rgba(255, 255, 255, 0.8);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+}
+
+.react-flow__controls-button:hover {
+  background: rgba(241, 245, 249, 0.9);
+}
+
+.react-flow__minimap {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(226, 232, 240, 0.8);
 }
