@@ -37,9 +37,12 @@ type FlowState = {
   toggleNodeLock: (id: string) => void;
   setSelectedNodeId: (id: string | null) => void;
   setIsRunning: (running: boolean) => void;
+  setNodeStatus: (id: string, status: string) => void;
+  updateNodeData: (id: string, key: string, value: any) => void;
   addLog: (log: Omit<GlobalLog, 'id' | 'timestamp'> & { nodeId?: string }) => void;
   clearLogs: () => void;
   simulateRun: () => Promise<void>;
+  simulateRunDemo: () => Promise<void>;
 };
 
 export const useFlowStore = create<FlowState>((set, get) => ({
@@ -125,6 +128,12 @@ export const useFlowStore = create<FlowState>((set, get) => ({
 
   setSelectedNodeId: (id) => set({ selectedNodeId: id, nodeClickTick: get().nodeClickTick + 1 }),
   setIsRunning: (running) => set({ isRunning: running }),
+
+  setNodeStatus: (id, status) =>
+    set({ nodes: get().nodes.map(n => n.id === id ? { ...n, data: { ...n.data, status } } : n) }),
+
+  updateNodeData: (id, key, value) =>
+    set({ nodes: get().nodes.map(n => n.id === id ? { ...n, data: { ...n.data, [key]: value } } : n) }),
   
   addLog: (log) => {
     const newLog = {
@@ -144,6 +153,35 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   },
 
   clearLogs: () => set({ globalLogs: [] }),
+
+  simulateRunDemo: async () => {
+    const { nodes, setIsRunning, addLog } = get();
+    if (nodes.length === 0) return;
+
+    setIsRunning(true);
+    get().clearLogs();
+
+    set({ nodes: get().nodes.map(n => ({ ...n, data: { ...n.data, status: 'waiting', logs: [] } })) });
+
+    for (const node of get().nodes) {
+      if (!get().isRunning) break;
+      set({ nodes: get().nodes.map(n => n.id === node.id ? { ...n, data: { ...n.data, status: 'running' } } : n) });
+      addLog({ nodeId: node.id, nodeName: (node.data.label as string) || (node.type as string) || 'default', nodeType: node.type || 'default', type: 'system', content: 'Starting execution...' });
+      await new Promise(r => setTimeout(r, 1500));
+      if (node.type === 'agent') {
+        const ln = (node.data.label as string) || 'Agent';
+        addLog({ nodeId: node.id, nodeName: ln, nodeType: 'agent', type: 'think', content: 'Analyzing context and history...' });
+        await new Promise(r => setTimeout(r, 1000));
+        addLog({ nodeId: node.id, nodeName: ln, nodeType: 'agent', type: 'act', content: 'Executing mapped function call...' });
+        await new Promise(r => setTimeout(r, 1500));
+        addLog({ nodeId: node.id, nodeName: ln, nodeType: 'agent', type: 'observe', content: 'Process completed successfully.' });
+      }
+      await new Promise(r => setTimeout(r, 500));
+      set({ nodes: get().nodes.map(n => n.id === node.id ? { ...n, data: { ...n.data, status: 'success' } } : n) });
+    }
+
+    setIsRunning(false);
+  },
 
   simulateRun: async () => {
     const { nodes, setIsRunning, addLog } = get();
