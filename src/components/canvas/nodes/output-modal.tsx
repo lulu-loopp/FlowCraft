@@ -1,5 +1,6 @@
 'use client'
 import React from 'react'
+import { createPortal } from 'react-dom'
 import ReactMarkdown from 'react-markdown'
 import { X, Copy, Check } from 'lucide-react'
 
@@ -13,8 +14,10 @@ interface OutputModalProps {
 
 export function OutputModal({ isOpen, onClose, title, content }: OutputModalProps) {
   const [copied, setCopied] = React.useState(false)
+  const [mounted, setMounted] = React.useState(false)
 
-  if (!isOpen) return null
+  // Mount only on client (avoid SSR mismatch)
+  React.useEffect(() => { setMounted(true) }, [])
 
   const handleCopy = () => {
     navigator.clipboard.writeText(content)
@@ -22,13 +25,23 @@ export function OutputModal({ isOpen, onClose, title, content }: OutputModalProp
     setTimeout(() => setCopied(false), 1500)
   }
 
-  return (
+  // Close on Escape
+  React.useEffect(() => {
+    if (!isOpen) return
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [isOpen, onClose])
+
+  if (!isOpen || !mounted) return null
+
+  return createPortal(
     <div
-      className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[100]"
+      className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[9999]"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-[720px] max-h-[80vh] flex flex-col overflow-hidden mx-4"
+        className="bg-white rounded-2xl shadow-2xl w-[680px] max-w-[90vw] max-h-[80vh] flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -63,6 +76,7 @@ export function OutputModal({ isOpen, onClose, title, content }: OutputModalProp
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

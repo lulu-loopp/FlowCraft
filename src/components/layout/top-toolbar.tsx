@@ -14,7 +14,7 @@ export function TopToolbar() {
   const [showInputDialog, setShowInputDialog] = React.useState(false);
   const [flowInput, setFlowInput] = React.useState('');
 
-  const { isRunning, setIsRunning } = useFlowStore();
+  const { isRunning, setIsRunning, nodes } = useFlowStore();
   const { t, lang, setLang } = useUIStore();
   const { runFlow } = useFlowExecution();
 
@@ -36,6 +36,13 @@ export function TopToolbar() {
   const handleRun = () => {
     if (isRunning) {
       setIsRunning(false);
+      return;
+    }
+    // If the io node already has text, run directly without the dialog
+    const ioNode = nodes.find(n => n.type === 'io');
+    const hasInputText = ((ioNode?.data?.inputText as string) || '').trim();
+    if (hasInputText) {
+      runFlow();
       return;
     }
     setShowInputDialog(true);

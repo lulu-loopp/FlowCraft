@@ -1,7 +1,7 @@
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { NodeColors, NodeType } from '@/styles/tokens';
-import { Bot, Wrench, Lightbulb, User, ArrowRightLeft, GitBranch, PlayCircle, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Bot, Wrench, Lightbulb, User, ArrowRightLeft, ArrowLeft, GitBranch, PlayCircle, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useFlowStore } from '@/store/flowStore';
 
@@ -24,6 +24,7 @@ const ICONS = {
   io: ArrowRightLeft,
   control: GitBranch,
   system: PlayCircle,
+  output: ArrowLeft,
 };
 
 export function BaseNode({ id, type, label, description, status = 'idle', selected, children, onDoubleClick }: BaseNodeProps) {

@@ -123,8 +123,10 @@ export function InputNode({ id, data, selected }: NodeProps) {
       </div>
 
       <Handle
-        type="source" position={Position.Right}
-        className="w-5 h-5 bg-white border-4 border-slate-400 hover:border-sky-400 transition-colors !-right-2.5 shadow-sm"
+        type="source"
+        position={Position.Right}
+        style={{ background: '#0ea5e9', borderColor: 'white' }}
+        className="!w-4 !h-4 !rounded-full !border-2 hover:!scale-125 !-right-2 !shadow-md transition-transform duration-150"
       />
     </div>
   )

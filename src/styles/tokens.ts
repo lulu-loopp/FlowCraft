@@ -47,6 +47,13 @@ export const NodeColors = {
     text: 'text-violet-700',
     badge: 'bg-violet-100 text-violet-700',
     hex: '#8b5cf6'
+  },
+  output: {
+    bg: 'bg-slate-100',
+    border: 'border-slate-400',
+    text: 'text-slate-600',
+    badge: 'bg-slate-200 text-slate-600',
+    hex: '#64748b'
   }
 } as const;
 

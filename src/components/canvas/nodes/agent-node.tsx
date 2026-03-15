@@ -69,7 +69,7 @@ export function AgentNode({ id, data, selected }: NodeProps) {
                 查看全部
               </button>
             </div>
-            <div className="px-2 pb-2 max-h-32 overflow-y-auto prose prose-xs prose-slate max-w-none">
+            <div className="px-2 pb-2 max-h-32 overflow-y-auto prose-node text-slate-700">
               <ReactMarkdown>{currentOutput.slice(0, 600)}</ReactMarkdown>
               {currentOutput.length > 600 && (
                 <p className="text-slate-400 text-xs mt-1">...双击节点查看完整内容</p>
