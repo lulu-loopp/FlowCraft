@@ -33,40 +33,21 @@ export function LeftPanel() {
   );
 
   return (
-    // Single element — width transition animates between collapsed/expanded
-    <div
-      className="bg-white border-r border-slate-200 flex flex-col overflow-hidden shrink-0"
-      style={{ width: isCollapsed ? 36 : 256, transition: 'width 200ms ease-in-out' }}
-    >
-      {/* Header — always visible */}
-      <div className="h-[49px] border-b border-slate-200 flex items-center shrink-0 px-2 gap-2">
-        {/* Title — fades out when collapsing */}
-        <div
-          className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden"
-          style={{ opacity: isCollapsed ? 0 : 1, transition: 'opacity 150ms ease-in-out' }}
-        >
-          <Layers className="w-4 h-4 text-slate-400 shrink-0" />
-          <span className="text-sm font-semibold text-slate-800 truncate">{t('panel.left.title')}</span>
-        </div>
-        {/* Collapse/expand button */}
-        <button
-          onClick={() => setIsCollapsed(o => !o)}
-          className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors shrink-0"
-          title={isCollapsed ? 'Expand' : 'Collapse'}
-        >
-          {isCollapsed
-            ? <ChevronRight className="w-4 h-4" />
-            : <ChevronLeft  className="w-4 h-4" />}
-        </button>
-      </div>
-
-      {/* Scrollable content — hidden when collapsed */}
+    // Wrapper: zero-width when collapsed, tab overflows into canvas via absolute
+    <div className="relative shrink-0 h-full">
+      {/* Panel body — width animates */}
       <div
-        className="flex-1 flex flex-col overflow-hidden"
-        style={{ opacity: isCollapsed ? 0 : 1, pointerEvents: isCollapsed ? 'none' : 'auto', transition: 'opacity 120ms ease-in-out' }}
+        className="h-full bg-white border-r border-slate-200 flex flex-col overflow-hidden"
+        style={{ width: isCollapsed ? 0 : 256, transition: 'width 200ms ease-in-out' }}
       >
+        {/* Header */}
+        <div className="h-[49px] border-b border-slate-200 flex items-center px-4 gap-2 shrink-0">
+          <Layers className="w-4 h-4 text-slate-400 shrink-0" />
+          <span className="text-sm font-semibold text-slate-800 truncate flex-1">{t('panel.left.title')}</span>
+        </div>
+
         {/* Search */}
-        <div className="px-3 py-2 border-b border-slate-200">
+        <div className="px-3 py-2 border-b border-slate-200 shrink-0">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
             <input
@@ -80,7 +61,6 @@ export function LeftPanel() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-3">
-          {/* Node Types section */}
           <button
             className="w-full flex items-center justify-between px-1 py-2 text-[11px] font-medium text-slate-400 hover:text-slate-600 transition-colors"
             onClick={() => setNodesOpen(o => !o)}
@@ -112,7 +92,6 @@ export function LeftPanel() {
             </div>
           )}
 
-          {/* Saved agents section */}
           <div className="pt-1">
             <button
               className="w-full flex items-center justify-between px-1 py-2 border-t border-slate-100 text-[11px] font-medium text-slate-400 hover:text-slate-600 transition-colors"
@@ -130,6 +109,23 @@ export function LeftPanel() {
           </div>
         </div>
       </div>
+
+      {/* Toggle tab — sits on the right border, always visible */}
+      <button
+        onClick={() => setIsCollapsed(o => !o)}
+        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full
+                   w-4 h-10 z-10 bg-white
+                   border border-l-0 border-slate-200 rounded-r-md
+                   flex items-center justify-center
+                   text-slate-300 hover:text-slate-600 hover:bg-slate-50
+                   shadow-[2px_0_6px_rgba(0,0,0,0.06)]
+                   transition-colors cursor-pointer"
+        title={isCollapsed ? 'Expand' : 'Collapse'}
+      >
+        {isCollapsed
+          ? <ChevronRight className="w-3 h-3" />
+          : <ChevronLeft  className="w-3 h-3" />}
+      </button>
     </div>
   );
 }

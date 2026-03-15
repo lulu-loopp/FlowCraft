@@ -57,6 +57,11 @@ body {
   filter: drop-shadow(0 0 3px currentColor);
 }
 
+/* Running edge: animates stroke-dashoffset on the react-flow path */
+.running-edge-anim path.react-flow__edge-path {
+  animation: dash-animation 0.65s linear infinite;
+}
+
 /* ── Node breathing glow (running state) ────────────────────── */
 @keyframes breath-glow {
   0%, 100% {

@@ -10,7 +10,7 @@ export default function CanvasPage() {
   return (
     <div className="w-screen h-[100dvh] flex flex-col overflow-hidden bg-white">
       <TopToolbar />
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex flex-1 min-h-0">
         <LeftPanel />
         <div className="flex flex-1 flex-col min-w-0 overflow-hidden bg-slate-50">
           <FlowEditor />

@@ -80,6 +80,7 @@ function FlowCanvas() {
         <Controls className="!mb-4 !ml-4" />
         <MiniMap
           className="!bottom-4 !right-4"
+          style={{ width: 128, height: 90 }}
           nodeColor={(node) => {
             const colors: Record<string, string> = {
               agent: '#6366f1', tool: '#10b981', skill: '#f59e0b',
