@@ -11,11 +11,13 @@ function toSSE(event: StreamEvent): string {
   return `data: ${JSON.stringify(event)}\n\n`
 }
 
-function getModelApiKey(provider: string): string {
+async function getModelApiKey(provider: string): Promise<string> {
+  const { readSettings } = await import('@/lib/settings-storage')
+  const settings = await readSettings()
   switch (provider) {
-    case 'anthropic': return process.env.ANTHROPIC_API_KEY ?? ''
-    case 'deepseek':  return process.env.DEEPSEEK_API_KEY ?? ''
-    case 'openai':    return process.env.OPENAI_API_KEY ?? ''
+    case 'anthropic': return settings.anthropicApiKey || process.env.ANTHROPIC_API_KEY || ''
+    case 'deepseek':  return settings.deepseekApiKey  || process.env.DEEPSEEK_API_KEY  || ''
+    case 'openai':    return settings.openaiApiKey    || process.env.OPENAI_API_KEY    || ''
     default:          return ''
   }
 }
@@ -30,7 +32,7 @@ export async function POST(req: NextRequest) {
     summary?: string
   }
 
-  const apiKey = getModelApiKey(body.config.model.provider)
+  const apiKey = await getModelApiKey(body.config.model.provider)
 
   if (!apiKey) {
     return new Response(

@@ -213,10 +213,19 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
   const { t } = useUIStore();
   const promptComposingRef = useRef(false);
 
-  useEffect(() => { fetchSkills(); }, [fetchSkills]);
-
   const theme = NODE_CONFIG_THEMES[node.type ?? 'agent'] || NODE_CONFIG_THEMES.agent;
   const data = node.data as Record<string, unknown>;
+
+  const [localSystemPrompt, setLocalSystemPrompt] = useState((data.systemPrompt as string) || '');
+
+  // Sync local state when node changes externally (e.g. undo/redo, load)
+  useEffect(() => {
+    if (!promptComposingRef.current) {
+      setLocalSystemPrompt((data.systemPrompt as string) || '');
+    }
+  }, [data.systemPrompt]);
+
+  useEffect(() => { fetchSkills(); }, [fetchSkills]);
 
   const updateNodeData = (updates: Record<string, unknown>) => {
     setNodes(nodes.map(n =>
@@ -259,14 +268,17 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
           <textarea
             className={`${inputCls} h-28 p-3 leading-relaxed resize-none`}
             placeholder={t('config.systemPromptPlaceholder')}
-            value={(data.systemPrompt as string) || ''}
+            value={localSystemPrompt}
             onChange={(e) => {
+              setLocalSystemPrompt(e.target.value);
               if (!promptComposingRef.current) updateNodeData({ systemPrompt: e.target.value });
             }}
             onCompositionStart={() => { promptComposingRef.current = true; }}
             onCompositionEnd={(e) => {
               promptComposingRef.current = false;
-              updateNodeData({ systemPrompt: (e.target as HTMLTextAreaElement).value });
+              const val = (e.target as HTMLTextAreaElement).value;
+              setLocalSystemPrompt(val);
+              updateNodeData({ systemPrompt: val });
             }}
           />
         </div>

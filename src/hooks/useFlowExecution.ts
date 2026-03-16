@@ -58,6 +58,10 @@ async function executeAgentNode(
     }),
   })
 
+  if (!response.ok) {
+    const errBody = await response.json().catch(() => ({ error: 'Agent call failed' }))
+    throw new Error((errBody as any).error || `HTTP ${response.status}`)
+  }
   if (!response.body) throw new Error('No response body')
 
   const reader = response.body.getReader()
@@ -108,7 +112,10 @@ async function executeConditionNode(
     }),
   })
 
-  if (!res.ok) throw new Error('Condition evaluation failed')
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({ error: 'Condition evaluation failed' }))
+    throw new Error(`Condition: ${(errBody as any).error || `HTTP ${res.status}`}`)
+  }
   const { result } = await res.json()
   return !!result
 }
@@ -223,6 +230,14 @@ export function useFlowExecution() {
               : false
             const nodeImages = isDirectlyAfterInput ? inputImages : []
             const wsContext = await getWorkspaceContext(currentFlowId, node.id)
+            if (wsContext) {
+              addLog({
+                nodeName: (node.data?.label as string) || 'Agent',
+                nodeType: 'agent',
+                type: 'system',
+                content: '📂 Workspace context loaded',
+              })
+            }
 
             output = await executeAgentNode(
               node, nodeInput, nodeImages, wsContext,

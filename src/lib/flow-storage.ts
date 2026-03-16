@@ -24,7 +24,21 @@ async function writeIndex(index: FlowMeta[]): Promise<void> {
 
 export async function listFlows(): Promise<FlowMeta[]> {
   await ensureDir();
-  return readIndex();
+  const index = await readIndex();
+  // Remove index entries whose JSON file no longer exists (self-healing)
+  const valid: FlowMeta[] = [];
+  let changed = false;
+  for (const meta of index) {
+    const filePath = path.join(FLOWS_DIR, `${meta.id}.json`);
+    try {
+      await fs.access(filePath);
+      valid.push(meta);
+    } catch {
+      changed = true; // orphaned entry
+    }
+  }
+  if (changed) await writeIndex(valid);
+  return valid;
 }
 
 export async function readFlow(id: string): Promise<FlowData | null> {
