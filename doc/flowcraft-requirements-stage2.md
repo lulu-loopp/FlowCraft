@@ -18,7 +18,7 @@
 状态管理：  Zustand
 画布引擎：  React Flow (@xyflow/react)
 样式：     Tailwind CSS + @tailwindcss/typography
-国际化：   next-intl（中英文切换）
+国际化：   uiStore + src/lib/i18n.ts（内联翻译，中英文切换）
 字体：     DM Sans（正文）+ DM Mono（代码/日志）
 图标：     lucide-react
 Markdown： react-markdown
@@ -34,7 +34,7 @@ Markdown： react-markdown
 - 所有颜色/间距/字体从 src/styles/tokens.ts 取，不硬编码
 - 通用组件放 src/components/ui/，不包含业务逻辑
 - 自定义 hooks 放 src/hooks/
-- 中英文文字全部走 next-intl，不硬编码字符串
+- 中英文文字全部走 src/lib/i18n.ts 的 t() 函数，不硬编码字符串
 - 用 useFlowStore.getState() 获取执行中的最新状态，避免 closure 陷阱
 ```
 
@@ -133,13 +133,13 @@ src/
 │        │                         │                │
 │  左侧  │     中间 Canvas 画布     │   右侧面板      │
 │  面板  │     React Flow           │   tab 1: 节点配置│
-│ 220px  │     网格背景             │   tab 2: 文件浏览│
+│ 256px  │     网格背景             │   tab 2: 文件浏览│
 │        │     可拖拽/缩放/连线      │   tab 3: 运行历史│
 │  节点库 │                         │   280px        │
 │  +     │                         │                │
 │  已保存 │                         │                │
 ├────────┴─────────────────────────┴────────────────┤
-│  底部面板（可收起，默认展开 160px）                  │
+│  底部面板（可收起，默认展开 224px）                  │
 │  tab 1: 执行日志  |  tab 2: 终端输出               │
 └──────────────────────────────────────────────────┘
 ```
@@ -228,7 +228,7 @@ src/
 - 只有左侧 target handle，没有右侧 handle
 - 无输出时：显示"等待上游节点输出..."
 - 有输出时：
-  - 显示结果摘要（前150字）
+  - 显示结果摘要（前400字）
   - 复制按钮（Copy icon）
   - 展开按钮（Maximize2 icon）
   - 双击节点：弹出 OutputModal
@@ -623,35 +623,24 @@ Workspace 目录  [输入框]  默认：./workspace
 
 ## 国际化规格
 
-所有显示给用户的文字通过 next-intl 管理：
+所有显示给用户的文字通过 `src/lib/i18n.ts` 的 `t()` 函数管理，翻译对象内联在该文件中，由 `uiStore` 提供当前语言状态：
 
-```json
-// messages/zh.json
-{
-  "canvas": {
-    "runFlow": "运行",
-    "stopFlow": "停止",
-    "save": "保存",
-    "export": "导出",
-    "publishApi": "发布 API",
-    "nodeLibrary": "节点库",
-    "savedAgents": "已保存 Agent",
-    "configuration": "配置",
-    "files": "文件",
-    "history": "历史",
-    "executionLog": "执行日志",
-    "terminal": "终端"
+```typescript
+// src/lib/i18n.ts（节选）
+export const translations = {
+  en: {
+    'toolbar.runFlow': 'Run flow',
+    'node.agent': 'Agent',
+    'node.io': 'Input',
+    'node.output': 'Output',
+    // ...
   },
-  "nodes": {
-    "agent": "Agent",
-    "tool": "工具",
-    "skill": "技能",
-    "human": "人工",
-    "input": "输入",
-    "output": "输出",
-    "condition": "条件",
-    "merge": "合并",
-    "initializer": "初始化"
+  zh: {
+    'toolbar.runFlow': '运行',
+    'node.agent': 'Agent',
+    'node.io': '输入',
+    'node.output': '输出',
+    // ...
   }
 }
 ```
@@ -681,7 +670,7 @@ Workspace 目录  [输入框]  默认：./workspace
 8. 运行历史
 9. YAML 导出
 10. API 发布
-11. 中英文切换（next-intl）
+11. 中英文切换（已有基础，待完善覆盖所有文字）
 12. 撤销/重做（Ctrl+Z）
 
 ---

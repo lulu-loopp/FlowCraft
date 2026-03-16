@@ -23,6 +23,30 @@
       "installedAt": 1742000000000,
       "enabled": true,
       "path": "skills/codex"
+    },
+    {
+      "name": "design-taste-frontend",
+      "description": "Senior UI/UX Engineer. Architect digital interfaces overriding default LLM biases. Enforces metric-based rules, strict component architecture, CSS hardware acceleration, and balanced design engineering.",
+      "source": "https://github.com/Leonxlnx/taste-skill/tree/main/taste-skill",
+      "installedAt": 1742000001000,
+      "enabled": true,
+      "path": "skills/taste-skill"
+    },
+    {
+      "name": "redesign-existing-projects",
+      "description": "Upgrades existing websites and apps to premium quality. Audits current design, identifies generic AI patterns, and applies high-end design standards without breaking functionality. Works with any CSS framework or vanilla CSS.",
+      "source": "https://github.com/Leonxlnx/taste-skill/tree/main/redesign-skill",
+      "installedAt": 1742000002000,
+      "enabled": true,
+      "path": "skills/redesign-skill"
+    },
+    {
+      "name": "full-output-enforcement",
+      "description": "Forces complete, production-quality code output without truncation, placeholders, or shortcuts. Use when you need full file implementations, multiple components, or any task where partial output would be a broken output.",
+      "source": "https://github.com/Leonxlnx/taste-skill/tree/main/output-skill",
+      "installedAt": 1742000003000,
+      "enabled": true,
+      "path": "skills/output-skill"
     }
   ]
 }

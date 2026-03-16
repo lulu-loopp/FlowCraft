@@ -179,6 +179,21 @@ path.running-edge-path {
   padding: 0 !important;
   border-radius: 0.75rem !important;
 }
+
+/* ReactFlow has more-specific selectors for built-in types (including
+   .selectable.selected) that override the generic rule — neutralise all. */
+.react-flow__node-input.selected,
+.react-flow__node-input.selectable.selected,
+.react-flow__node-input:focus,
+.react-flow__node-input:focus-visible,
+.react-flow__node-output.selected,
+.react-flow__node-output.selectable.selected,
+.react-flow__node-output:focus,
+.react-flow__node-output:focus-visible {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
 .react-flow__controls {
   border-radius: 12px;
   overflow: hidden;
