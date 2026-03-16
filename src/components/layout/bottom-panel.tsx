@@ -80,7 +80,7 @@ export function BottomPanel() {
                   key={log.id}
                   className="group flex items-start gap-2.5 px-2 py-1.5 rounded-lg hover:bg-slate-50/80 transition-colors animate-fade-in-up"
                 >
-                  <span className="shrink-0 text-[10px] text-slate-400 tabular-nums font-mono pt-0.5 w-[52px]">
+                  <span suppressHydrationWarning className="shrink-0 text-[10px] text-slate-400 tabular-nums font-mono pt-0.5 w-[52px]">
                     {log.timestamp}
                   </span>
                   <span className={`shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${LOG_TYPE_STYLE[log.type] ?? LOG_TYPE_STYLE.system}`}>
