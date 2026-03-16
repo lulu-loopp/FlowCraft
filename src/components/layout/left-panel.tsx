@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bot, Wrench, Lightbulb, User, ArrowRight, Inbox, GitBranch, PlayCircle, Layers, Search, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 
@@ -15,15 +15,31 @@ const NODE_TYPES = [
   { type: 'initializer', icon: PlayCircle,     color: 'text-violet-600', bg: 'bg-violet-50',  key: 'node.initializer' },
 ] as const;
 
+interface AgentEntry {
+  name: string;
+  description: string;
+}
+
 export function LeftPanel() {
   const { t } = useUIStore();
   const [search, setSearch] = useState('');
   const [nodesOpen, setNodesOpen] = useState(true);
   const [agentsOpen, setAgentsOpen] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [agents, setAgents] = useState<AgentEntry[]>([]);
 
-  const onDragStart = (event: React.DragEvent, nodeType: string) => {
+  useEffect(() => {
+    fetch('/api/agents')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data?.agents)) setAgents(data.agents);
+      })
+      .catch(() => {});
+  }, []);
+
+  const onDragStart = (event: React.DragEvent, nodeType: string, agentName?: string) => {
     event.dataTransfer.setData('application/reactflow', nodeType);
+    if (agentName) event.dataTransfer.setData('application/agent-name', agentName);
     event.dataTransfer.effectAllowed = 'move';
   };
 
@@ -33,21 +49,21 @@ export function LeftPanel() {
     n.type.includes(search.toLowerCase())
   );
 
+  const filteredAgents = agents.filter(a =>
+    !search || a.name.includes(search.toLowerCase()) || a.description.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    // Wrapper: zero-width when collapsed, tab overflows into canvas via absolute
     <div className="relative shrink-0 h-full">
-      {/* Panel body — width animates */}
       <div
         className="h-full bg-white border-r border-slate-200 flex flex-col overflow-hidden"
         style={{ width: isCollapsed ? 0 : 256, transition: 'width 200ms ease-in-out' }}
       >
-        {/* Header */}
         <div className="h-[49px] border-b border-slate-200 flex items-center px-4 gap-2 shrink-0">
           <Layers className="w-4 h-4 text-slate-400 shrink-0" />
           <span className="text-sm font-semibold text-slate-800 truncate flex-1">{t('panel.left.title')}</span>
         </div>
 
-        {/* Search */}
         <div className="px-3 py-2 border-b border-slate-200 shrink-0">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
@@ -102,16 +118,39 @@ export function LeftPanel() {
               <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${agentsOpen ? '' : '-rotate-90'}`} />
             </button>
             {agentsOpen && (
-              <div className="flex flex-col items-center justify-center py-5 gap-1.5 rounded-xl border border-dashed border-slate-200 bg-slate-50/50">
-                <Bot className="w-5 h-5 text-slate-300" />
-                <p className="text-xs text-slate-400">{t('panel.left.noAgents')}</p>
-              </div>
+              filteredAgents.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-5 gap-1.5 rounded-xl border border-dashed border-slate-200 bg-slate-50/50">
+                  <Bot className="w-5 h-5 text-slate-300" />
+                  <p className="text-xs text-slate-400">{t('panel.left.noAgents')}</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {filteredAgents.map(agent => (
+                    <div
+                      key={agent.name}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-indigo-50 hover:border-indigo-100 hover:-translate-y-px transition-all cursor-grab active:cursor-grabbing active:scale-[0.98]"
+                      draggable
+                      onDragStart={(e) => onDragStart(e, 'agent', agent.name)}
+                      title={agent.description}
+                    >
+                      <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 shrink-0">
+                        <Bot className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-slate-700 truncate">{agent.name}</p>
+                        {agent.description && (
+                          <p className="text-xs text-slate-400 truncate">{agent.description}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
             )}
           </div>
         </div>
       </div>
 
-      {/* Toggle tab — sits on the right border, always visible */}
       <button
         onClick={() => setIsCollapsed(o => !o)}
         className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full
