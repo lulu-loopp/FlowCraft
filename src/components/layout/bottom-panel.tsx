@@ -17,7 +17,14 @@ const LOG_TYPE_STYLE: Record<string, string> = {
 export function BottomPanel() {
   const [isExpanded, setIsExpanded] = React.useState(true);
   const [activeTab, setActiveTab] = React.useState('execution');
-  const { globalLogs, clearLogs } = useFlowStore();
+  const { globalLogs, clearLogs, addLog } = useFlowStore();
+
+  React.useEffect(() => {
+    if (useFlowStore.getState().globalLogs.length === 0) {
+      addLog({ nodeName: 'System', nodeType: 'system', type: 'system', content: 'FlowCraft environment initialized. Ready to execute.' });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const { t } = useUIStore();
 
   const logsEndRef = React.useRef<HTMLDivElement>(null);

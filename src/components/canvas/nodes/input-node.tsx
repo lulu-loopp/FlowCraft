@@ -25,8 +25,15 @@ function readAsDataURL(file: File): Promise<string> {
 export function InputNode({ id, data, selected }: NodeProps) {
   const { setNodes, nodes, removeNode, duplicateNode, toggleNodeLock } = useFlowStore()
   const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const composingRef = React.useRef(false)
 
   const inputText = (data?.inputText as string) || ''
+  const [localText, setLocalText] = React.useState(inputText)
+
+  // Sync when store value changes externally (e.g. flow load)
+  React.useEffect(() => {
+    if (!composingRef.current) setLocalText(inputText)
+  }, [inputText])
   const inputFiles = (data?.inputFiles as InputFile[]) || []
   const status = (data?.status as string) || 'idle'
   const isRunning = status === 'running'
@@ -134,8 +141,18 @@ export function InputNode({ id, data, selected }: NodeProps) {
           className="nodrag w-full h-20 p-2 text-xs border border-slate-200 rounded-lg resize-none outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400 placeholder:text-slate-300 bg-white cursor-text"
           style={{ userSelect: 'text', WebkitUserSelect: 'text' }}
           placeholder="输入你的目标或问题..."
-          value={inputText}
-          onChange={e => updateData('inputText', e.target.value)}
+          value={localText}
+          onChange={e => {
+            setLocalText(e.target.value)
+            if (!composingRef.current) updateData('inputText', e.target.value)
+          }}
+          onCompositionStart={() => { composingRef.current = true }}
+          onCompositionEnd={e => {
+            composingRef.current = false
+            const val = (e.target as HTMLTextAreaElement).value
+            setLocalText(val)
+            updateData('inputText', val)
+          }}
         />
 
         {inputFiles.length > 0 && (

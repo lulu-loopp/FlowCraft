@@ -18,6 +18,12 @@ export function ConditionNode({ id, data, selected }: NodeProps) {
   const status = data?.status as string | undefined;
   const mode: Mode = (data?.conditionMode as Mode) || 'natural';
   const value = (data?.conditionValue as string) || '';
+  const [localValue, setLocalValue] = React.useState(value);
+  const composingRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!composingRef.current) setLocalValue(value);
+  }, [value]);
 
   const isRunning = status === 'running';
   const isSuccess = status === 'success';
@@ -168,8 +174,18 @@ export function ConditionNode({ id, data, selected }: NodeProps) {
       {/* Body */}
       <div className="p-4 bg-white/80 rounded-b-xl backdrop-blur-sm">
         <textarea
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
+          value={localValue}
+          onChange={(e) => {
+            setLocalValue(e.target.value);
+            if (!composingRef.current) setValue(e.target.value);
+          }}
+          onCompositionStart={() => { composingRef.current = true; }}
+          onCompositionEnd={(e) => {
+            composingRef.current = false;
+            const val = (e.target as HTMLTextAreaElement).value;
+            setLocalValue(val);
+            setValue(val);
+          }}
           placeholder={placeholder}
           rows={3}
           className={`w-full text-xs border border-slate-200 rounded-lg p-2.5 resize-none

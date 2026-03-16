@@ -10,31 +10,30 @@ interface Snapshot {
 
 const MAX_HISTORY = 50;
 
-// History lives outside React so it isn't reset on re-renders
+// Module-level history — survives re-renders
 const history: Snapshot[] = [];
 let cursor = -1;
-let ignoreNext = false; // flag to suppress push when we're restoring
+let ignoreNext = false;
 
 function pushSnapshot(snap: Snapshot) {
   if (ignoreNext) {
     ignoreNext = false;
     return;
   }
-  // Discard any future history if we branched
   history.splice(cursor + 1);
-  history.push({ nodes: [...snap.nodes], edges: [...snap.edges] });
+  history.push({ nodes: snap.nodes, edges: snap.edges });
   if (history.length > MAX_HISTORY) history.shift();
   cursor = history.length - 1;
 }
 
 export function useUndoRedo() {
-  // Track previous values to detect real changes
   const prevRef = useRef<Snapshot | null>(null);
 
   useEffect(() => {
     const unsub = useFlowStore.subscribe((state) => {
       const snap = { nodes: state.nodes, edges: state.edges };
       const prev = prevRef.current;
+      // Only push when nodes OR edges reference actually changed
       if (!prev || prev.nodes !== snap.nodes || prev.edges !== snap.edges) {
         prevRef.current = snap;
         pushSnapshot(snap);
@@ -47,9 +46,9 @@ export function useUndoRedo() {
     if (cursor <= 0) return;
     cursor -= 1;
     const snap = history[cursor];
+    // setNodesAndEdges fires one subscription event → one pushSnapshot call
     ignoreNext = true;
-    useFlowStore.getState().setNodes([...snap.nodes]);
-    useFlowStore.getState().setEdges([...snap.edges]);
+    useFlowStore.getState().setNodesAndEdges([...snap.nodes], [...snap.edges]);
   }, []);
 
   const redo = useCallback(() => {
@@ -57,12 +56,8 @@ export function useUndoRedo() {
     cursor += 1;
     const snap = history[cursor];
     ignoreNext = true;
-    useFlowStore.getState().setNodes([...snap.nodes]);
-    useFlowStore.getState().setEdges([...snap.edges]);
+    useFlowStore.getState().setNodesAndEdges([...snap.nodes], [...snap.edges]);
   }, []);
 
-  const canUndo = cursor > 0;
-  const canRedo = cursor < history.length - 1;
-
-  return { undo, redo, canUndo, canRedo };
+  return { undo, redo };
 }

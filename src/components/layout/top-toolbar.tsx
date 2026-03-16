@@ -8,7 +8,7 @@ import { Badge } from '../ui/badge';
 import { useFlowStore } from '@/store/flowStore';
 import { useUIStore } from '@/store/uiStore';
 import { useFlowExecution } from '@/hooks/useFlowExecution';
-import { useFlowPersistence } from '@/hooks/useFlowPersistence';
+import { useFlowPersistence, type SaveStatus } from '@/hooks/useFlowPersistence';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { flowToYaml } from '@/lib/flow-yaml';
 import type { FlowData } from '@/types/flow';
@@ -17,13 +17,12 @@ export function TopToolbar() {
   const [isEditing, setIsEditing] = React.useState(false);
   const [showInputDialog, setShowInputDialog] = React.useState(false);
   const [flowInput, setFlowInput] = React.useState('');
-  const [savedFeedback, setSavedFeedback] = React.useState(false);
 
   const { isRunning, setIsRunning, nodes, flowId, flowName, setFlowName } = useFlowStore();
   const { t, lang, setLang } = useUIStore();
   const { runFlow } = useFlowExecution();
-  const { saveFlow } = useFlowPersistence(flowId);
-  const { undo, redo, canUndo, canRedo } = useUndoRedo();
+  const { saveFlow, saveStatus } = useFlowPersistence(flowId);
+  const { undo, redo } = useUndoRedo();
   const router = useRouter();
 
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -48,26 +47,19 @@ export function TopToolbar() {
       }
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
         e.preventDefault();
-        if (canUndo) undo();
+        undo();
       }
       if ((e.ctrlKey || e.metaKey) && (e.shiftKey ? e.key === 'Z' : e.key === 'y')) {
         e.preventDefault();
-        if (canRedo) redo();
+        redo();
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canUndo, canRedo, undo, redo]);
+  }, [undo, redo]);
 
-  const handleSave = async () => {
-    if (!flowId) return;
-    const ok = await saveFlow();
-    if (ok) {
-      setSavedFeedback(true);
-      setTimeout(() => setSavedFeedback(false), 1500);
-    }
-  };
+  const handleSave = () => { saveFlow(); };
 
   const handleExportYaml = () => {
     const state = useFlowStore.getState();
@@ -180,8 +172,10 @@ export function TopToolbar() {
             onClick={handleSave}
             title="Ctrl+S"
           >
-            {savedFeedback ? (
+            {saveStatus === 'saved' ? (
               <><Check className="w-3.5 h-3.5 text-emerald-500" /> {t('toolbar.saved')}</>
+            ) : saveStatus === 'saving' ? (
+              <><Save className="w-3.5 h-3.5 animate-pulse" /> {t('toolbar.save')}</>
             ) : (
               <><Save className="w-3.5 h-3.5" /> {t('toolbar.save')}</>
             )}

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { DM_Sans, DM_Mono } from 'next/font/google';
 import './globals.css';
+import { StoreHydration } from '@/components/StoreHydration';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${dmSans.variable} ${dmMono.variable}`}>
       <body className="font-[family-name:var(--font-dm-sans)] antialiased" suppressHydrationWarning>
+        <StoreHydration />
         {children}
       </body>
     </html>

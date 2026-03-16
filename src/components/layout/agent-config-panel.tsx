@@ -211,6 +211,7 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
   const { nodes, setNodes } = useFlowStore();
   const { skillRegistry, fetchSkills } = useAgentStore();
   const { t } = useUIStore();
+  const promptComposingRef = useRef(false);
 
   useEffect(() => { fetchSkills(); }, [fetchSkills]);
 
@@ -259,7 +260,14 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
             className={`${inputCls} h-28 p-3 leading-relaxed resize-none`}
             placeholder={t('config.systemPromptPlaceholder')}
             value={(data.systemPrompt as string) || ''}
-            onChange={(e) => updateNodeData({ systemPrompt: e.target.value })}
+            onChange={(e) => {
+              if (!promptComposingRef.current) updateNodeData({ systemPrompt: e.target.value });
+            }}
+            onCompositionStart={() => { promptComposingRef.current = true; }}
+            onCompositionEnd={(e) => {
+              promptComposingRef.current = false;
+              updateNodeData({ systemPrompt: (e.target as HTMLTextAreaElement).value });
+            }}
           />
         </div>
 

@@ -42,6 +42,7 @@ type FlowState = {
   onConnect: (connection: Connection) => void;
   setNodes: (nodes: Node[]) => void;
   setEdges: (edges: Edge[]) => void;
+  setNodesAndEdges: (nodes: Node[], edges: Edge[]) => void;
   addNode: (node: Node) => void;
   removeNode: (id: string) => void;
   duplicateNode: (id: string) => void;
@@ -68,16 +69,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   flowId: '',
   flowName: '',
   runHistory: [],
-  globalLogs: [
-    {
-      id: 'init-1',
-      timestamp: new Date().toLocaleTimeString(),
-      nodeName: 'System',
-      nodeType: 'system',
-      type: 'system',
-      content: 'FlowCraft environment initialized. Ready to execute.',
-    }
-  ],
+  globalLogs: [],
   
   onNodesChange: (changes) => {
     const currentNodes = get().nodes;
@@ -106,6 +98,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
 
   setNodes: (nodes) => set({ nodes }),
   setEdges: (edges) => set({ edges }),
+  setNodesAndEdges: (nodes, edges) => set({ nodes, edges }),
   addNode: (node) => set({ nodes: [...get().nodes, node] }),
   
   removeNode: (id) => {

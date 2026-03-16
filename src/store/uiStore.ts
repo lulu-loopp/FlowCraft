@@ -15,6 +15,12 @@ export const useUIStore = create<UIState>()(
       setLang: (lang) => set({ lang }),
       t: (key) => translations[get().lang][key] as string,
     }),
-    { name: 'flowcraft-ui' }
+    {
+      name: 'flowcraft-ui',
+      // Skip auto-hydration on store creation so SSR and initial client render
+      // both use the default lang='en', avoiding hydration mismatches.
+      // Rehydration is triggered manually after mount (see StoreHydration component).
+      skipHydration: true,
+    }
   )
 );
