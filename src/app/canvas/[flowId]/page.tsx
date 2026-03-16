@@ -1,5 +1,9 @@
 'use client';
 
+import React from 'react';
+import { useParams } from 'next/navigation';
+import { useFlowStore } from '@/store/flowStore';
+import { useFlowPersistence } from '@/hooks/useFlowPersistence';
 import { FlowEditor } from '@/components/canvas/flow-editor';
 import { TopToolbar } from '@/components/layout/top-toolbar';
 import { LeftPanel } from '@/components/layout/left-panel';
@@ -7,6 +11,15 @@ import { RightPanel } from '@/components/layout/right-panel';
 import { BottomPanel } from '@/components/layout/bottom-panel';
 
 export default function CanvasPage() {
+  const params = useParams();
+  const flowId = params.flowId as string;
+  const { loadFlow } = useFlowPersistence(flowId);
+
+  React.useEffect(() => {
+    useFlowStore.getState().setFlowId(flowId);
+    loadFlow();
+  }, [flowId, loadFlow]);
+
   return (
     <div className="w-screen h-[100dvh] flex flex-col overflow-hidden bg-white">
       <TopToolbar />

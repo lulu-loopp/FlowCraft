@@ -19,6 +19,14 @@ export type GlobalLog = {
   content: string;
 };
 
+export type RunRecord = {
+  id: string;
+  startedAt: string;
+  status: 'success' | 'error';
+  duration: number;
+  nodeCount: number;
+};
+
 type FlowState = {
   nodes: Node[];
   edges: Edge[];
@@ -26,6 +34,9 @@ type FlowState = {
   nodeClickTick: number;
   isRunning: boolean;
   globalLogs: GlobalLog[];
+  flowId: string;
+  flowName: string;
+  runHistory: RunRecord[];
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
@@ -41,6 +52,9 @@ type FlowState = {
   updateNodeData: (id: string, key: string, value: any) => void;
   addLog: (log: Omit<GlobalLog, 'id' | 'timestamp'> & { nodeId?: string }) => void;
   clearLogs: () => void;
+  setFlowId: (id: string) => void;
+  setFlowName: (name: string) => void;
+  addRunRecord: (record: RunRecord) => void;
   simulateRun: () => Promise<void>;
   simulateRunDemo: () => Promise<void>;
 };
@@ -51,6 +65,9 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   selectedNodeId: null,
   nodeClickTick: 0,
   isRunning: false,
+  flowId: '',
+  flowName: '',
+  runHistory: [],
   globalLogs: [
     {
       id: 'init-1',
@@ -153,6 +170,10 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   },
 
   clearLogs: () => set({ globalLogs: [] }),
+
+  setFlowId: (id) => set({ flowId: id }),
+  setFlowName: (name) => set({ flowName: name }),
+  addRunRecord: (record) => set((state) => ({ runHistory: [record, ...state.runHistory].slice(0, 50) })),
 
   simulateRunDemo: async () => {
     const { nodes, setIsRunning, addLog } = get();

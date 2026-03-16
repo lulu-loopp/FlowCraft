@@ -1,27 +1,33 @@
 'use client';
 
 import React from 'react';
-import { Play, Save, Share2, Square } from 'lucide-react';
+import { Play, Save, Square, Home, FileDown, Check } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { useFlowStore } from '@/store/flowStore';
 import { useUIStore } from '@/store/uiStore';
 import { useFlowExecution } from '@/hooks/useFlowExecution';
+import { useFlowPersistence } from '@/hooks/useFlowPersistence';
+import { useUndoRedo } from '@/hooks/useUndoRedo';
+import { flowToYaml } from '@/lib/flow-yaml';
+import type { FlowData } from '@/types/flow';
 
 export function TopToolbar() {
-  const [flowName, setFlowName] = React.useState('');
   const [isEditing, setIsEditing] = React.useState(false);
   const [showInputDialog, setShowInputDialog] = React.useState(false);
   const [flowInput, setFlowInput] = React.useState('');
+  const [savedFeedback, setSavedFeedback] = React.useState(false);
 
-  const { isRunning, setIsRunning, nodes } = useFlowStore();
+  const { isRunning, setIsRunning, nodes, flowId, flowName, setFlowName } = useFlowStore();
   const { t, lang, setLang } = useUIStore();
   const { runFlow } = useFlowExecution();
+  const { saveFlow } = useFlowPersistence(flowId);
+  const { undo, redo, canUndo, canRedo } = useUndoRedo();
+  const router = useRouter();
 
   const inputRef = React.useRef<HTMLInputElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
-
-  const displayName = flowName || t('toolbar.untitledFlow');
 
   React.useEffect(() => {
     if (isEditing && inputRef.current) inputRef.current.focus();
@@ -33,13 +39,62 @@ export function TopToolbar() {
     }
   }, [showInputDialog]);
 
+  // Ctrl+S to save
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSave();
+      }
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
+        e.preventDefault();
+        if (canUndo) undo();
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.shiftKey ? e.key === 'Z' : e.key === 'y')) {
+        e.preventDefault();
+        if (canRedo) redo();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canUndo, canRedo, undo, redo]);
+
+  const handleSave = async () => {
+    if (!flowId) return;
+    const ok = await saveFlow();
+    if (ok) {
+      setSavedFeedback(true);
+      setTimeout(() => setSavedFeedback(false), 1500);
+    }
+  };
+
+  const handleExportYaml = () => {
+    const state = useFlowStore.getState();
+    const flow: FlowData = {
+      id: state.flowId || 'flow',
+      name: state.flowName || 'Untitled Flow',
+      nodes: state.nodes,
+      edges: state.edges,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const yaml = flowToYaml(flow);
+    const blob = new Blob([yaml], { type: 'text/yaml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${flow.name.replace(/\s+/g, '-').toLowerCase()}.yaml`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleRun = () => {
     if (isRunning) {
       setIsRunning(false);
       return;
     }
-    // If the io node already has text, run directly without the dialog
-    const ioNode = nodes.find(n => n.type === 'io');
+    const ioNode = nodes.find((n) => n.type === 'io');
     const hasInputText = ((ioNode?.data?.inputText as string) || '').trim();
     if (hasInputText) {
       runFlow();
@@ -62,8 +117,17 @@ export function TopToolbar() {
   return (
     <>
       <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-5 shrink-0">
-        {/* Left: brand + flow name */}
+        {/* Left: home + brand + flow name */}
         <div className="flex items-center gap-3 min-w-0">
+          {/* Home button */}
+          <button
+            onClick={() => router.push('/')}
+            title={t('toolbar.home')}
+            className="flex items-center justify-center w-7 h-7 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            <Home className="w-4 h-4" />
+          </button>
+
           <div className="flex items-center gap-2 shrink-0">
             <div className="w-7 h-7 rounded-lg bg-teal-600 flex items-center justify-center shadow-sm">
               <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
@@ -109,18 +173,29 @@ export function TopToolbar() {
             {lang === 'en' ? '中文' : 'EN'}
           </button>
 
-          <Button variant="ghost" size="sm" className="hidden md:flex gap-1.5 text-slate-600">
-            <Save className="w-3.5 h-3.5" />
-            {t('toolbar.save')}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="hidden md:flex gap-1.5 text-slate-600"
+            onClick={handleSave}
+            title="Ctrl+S"
+          >
+            {savedFeedback ? (
+              <><Check className="w-3.5 h-3.5 text-emerald-500" /> {t('toolbar.saved')}</>
+            ) : (
+              <><Save className="w-3.5 h-3.5" /> {t('toolbar.save')}</>
+            )}
           </Button>
 
           <Button
             size="sm"
             variant="outline"
             className="hidden border-slate-200 text-slate-700 hover:bg-slate-50 sm:flex gap-1.5"
+            onClick={handleExportYaml}
+            title={t('toolbar.exportYaml')}
           >
-            <Share2 className="w-3.5 h-3.5" />
-            {t('toolbar.publishApi')}
+            <FileDown className="w-3.5 h-3.5" />
+            <span className="hidden lg:inline">{t('toolbar.exportYaml')}</span>
           </Button>
 
           <Button
@@ -146,16 +221,14 @@ export function TopToolbar() {
           onKeyDown={handleDialogKeyDown}
         >
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-[480px] mx-4">
-            <h3 className="font-semibold text-slate-800 mb-1">What's your goal?</h3>
-            <p className="text-sm text-slate-500 mb-4">
-              This will be passed as input to the first agent node.
-            </p>
+            <h3 className="font-semibold text-slate-800 mb-1">{t('canvas.goalTitle')}</h3>
+            <p className="text-sm text-slate-500 mb-4">{t('canvas.goalHint')}</p>
             <textarea
               ref={textareaRef}
               className="w-full h-28 p-3 text-sm border border-slate-200 rounded-lg resize-none outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="e.g. Research the latest AI agent frameworks..."
+              placeholder={t('canvas.goalPlaceholder')}
               value={flowInput}
-              onChange={e => setFlowInput(e.target.value)}
+              onChange={(e) => setFlowInput(e.target.value)}
             />
             <p className="text-xs text-slate-400 mt-1.5">⌘↵ to run</p>
             <div className="flex justify-end gap-2 mt-4">
@@ -163,14 +236,14 @@ export function TopToolbar() {
                 onClick={() => setShowInputDialog(false)}
                 className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
               >
-                Cancel
+                {t('canvas.cancel')}
               </button>
               <button
                 onClick={handleConfirmRun}
                 disabled={!flowInput.trim()}
                 className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 transition-colors"
               >
-                Run Flow
+                {t('canvas.run')}
               </button>
             </div>
           </div>

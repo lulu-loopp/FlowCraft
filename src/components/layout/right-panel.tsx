@@ -10,7 +10,7 @@ import { AgentConfigPanel } from './agent-config-panel';
 export function RightPanel() {
   const [activeTab, setActiveTab] = React.useState('config');
   const [isCollapsed, setIsCollapsed] = React.useState(false);
-  const { selectedNodeId, nodes, nodeClickTick } = useFlowStore();
+  const { selectedNodeId, nodes, nodeClickTick, runHistory } = useFlowStore();
   const { t } = useUIStore();
 
   // Auto-expand and switch to config tab when a node is clicked (including re-clicks)
@@ -86,13 +86,40 @@ export function RightPanel() {
             </div>
           )}
 
-          {activeTab === 'history' && (
+          {activeTab === 'history' && runHistory.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full gap-2 text-center px-4">
               <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center mb-1">
                 <Clock className="w-5 h-5 text-slate-400" />
               </div>
               <p className="text-sm font-medium text-slate-700">{t('panel.right.noHistory')}</p>
               <p className="text-xs text-slate-400 leading-relaxed">{t('panel.right.noHistoryHint')}</p>
+            </div>
+          )}
+
+          {activeTab === 'history' && runHistory.length > 0 && (
+            <div className="space-y-2">
+              {runHistory.map((record) => (
+                <div
+                  key={record.id}
+                  className="bg-white border border-slate-100 rounded-xl p-3 space-y-1.5"
+                >
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        record.status === 'success'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : 'bg-rose-50 text-rose-700'
+                      }`}
+                    >
+                      {record.status}
+                    </span>
+                    <span className="text-xs text-slate-400">{record.duration}ms</span>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    {new Date(record.startedAt).toLocaleTimeString()} &middot; {record.nodeCount} nodes
+                  </p>
+                </div>
+              ))}
             </div>
           )}
         </div>
