@@ -13,7 +13,7 @@ import { BottomPanel } from '@/components/layout/bottom-panel';
 export default function CanvasPage() {
   const params = useParams();
   const flowId = params.flowId as string;
-  const { loadFlow } = useFlowPersistence(flowId);
+  const { loadFlow, saveFlow } = useFlowPersistence(flowId);
 
   React.useEffect(() => {
     useFlowStore.getState().setFlowId(flowId);
@@ -26,7 +26,7 @@ export default function CanvasPage() {
       <div className="flex flex-1 min-h-0">
         <LeftPanel />
         <div className="flex flex-1 flex-col min-w-0 overflow-hidden bg-slate-50">
-          <FlowEditor />
+          <FlowEditor onSave={saveFlow} />
           <BottomPanel />
         </div>
         <RightPanel />

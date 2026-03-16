@@ -32,14 +32,26 @@ export function useFlowPersistence(flowId: string) {
     }
   }, [flowId]);
 
-  // Auto-save: 2s debounce after nodes/edges change
+  // Auto-save: immediate for structural changes, 800ms debounce for data changes.
+  // Drag-end saves are triggered externally via saveFlow() from onNodeDragStop.
   useEffect(() => {
     if (!flowId) return;
     const unsub = useFlowStore.subscribe((state, prev) => {
-      if (state.isRunning) return; // skip during execution
-      if (state.nodes !== prev.nodes || state.edges !== prev.edges || state.flowName !== prev.flowName) {
-        if (timerRef.current) clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(() => saveFlow(), 2000);
+      if (state.isRunning) return;
+      if (state.nodes === prev.nodes && state.edges === prev.edges && state.flowName === prev.flowName) return;
+
+      if (timerRef.current) clearTimeout(timerRef.current);
+
+      // Structural change (node/edge added or removed, name changed): save immediately
+      if (
+        state.nodes.length !== prev.nodes.length ||
+        state.edges.length !== prev.edges.length ||
+        state.flowName !== prev.flowName
+      ) {
+        saveFlow();
+      } else {
+        // Data or position change: short debounce so typing feels responsive
+        timerRef.current = setTimeout(() => saveFlow(), 800);
       }
     });
     return () => {
@@ -55,8 +67,8 @@ export function useFlowPersistence(flowId: string) {
       if (!res.ok) return;
       const flow: FlowData = await res.json();
       const store = useFlowStore.getState();
-      store.setNodes(flow.nodes || []);
-      store.setEdges(flow.edges || []);
+      // Single batch update → one Zustand event → one history snapshot
+      store.setNodesAndEdges(flow.nodes || [], flow.edges || []);
       store.setFlowName(flow.name || 'Untitled Flow');
       store.setFlowId(flowId);
     } catch {

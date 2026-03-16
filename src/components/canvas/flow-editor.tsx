@@ -15,12 +15,17 @@ import { nodeTypes } from './nodes';
 import { CustomEdge } from './custom-edge';
 import { Button } from '../ui/button';
 import { Blocks } from 'lucide-react';
+import { startDrag, stopDrag } from '@/hooks/useUndoRedo';
 
 const edgeTypes = {
   custom: CustomEdge,
 };
 
-function FlowCanvas() {
+interface FlowCanvasProps {
+  onSave?: () => void;
+}
+
+function FlowCanvas({ onSave }: FlowCanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, setSelectedNodeId } = useFlowStore();
   const { screenToFlowPosition } = useReactFlow();
@@ -68,6 +73,8 @@ function FlowCanvas() {
         onConnect={onConnect}
         onDrop={onDrop}
         onDragOver={onDragOver}
+        onNodeDragStart={() => startDrag()}
+        onNodeDragStop={() => { stopDrag(); onSave?.(); }}
         deleteKeyCode={['Backspace', 'Delete']}
         nodeTypes={nodeTypes as any}
         edgeTypes={edgeTypes as any}
@@ -111,11 +118,15 @@ function FlowCanvas() {
   );
 }
 
-export function FlowEditor() {
+interface FlowEditorProps {
+  onSave?: () => void;
+}
+
+export function FlowEditor({ onSave }: FlowEditorProps) {
   return (
     <div className="flex-1 min-h-0 overflow-hidden">
       <ReactFlowProvider>
-        <FlowCanvas />
+        <FlowCanvas onSave={onSave} />
       </ReactFlowProvider>
     </div>
   );
