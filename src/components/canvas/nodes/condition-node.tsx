@@ -25,10 +25,12 @@ export function ConditionNode({ id, data, selected }: NodeProps) {
     if (!composingRef.current) setLocalValue(value);
   }, [value]);
 
+  const conditionResult = data?.conditionResult as 'true' | 'false' | undefined;
   const isRunning = status === 'running';
   const isSuccess = status === 'success';
   const isError = status === 'error';
   const isWaiting = status === 'waiting';
+  const isSkipped = status === 'skipped';
 
   const setMode = (m: Mode) => updateNodeData(id, 'conditionMode', m);
   const setValue = (v: string) => updateNodeData(id, 'conditionValue', v);
@@ -40,7 +42,7 @@ export function ConditionNode({ id, data, selected }: NodeProps) {
     <div
       className={`relative w-[260px] rounded-xl bg-white shadow-sm border-2 transition-all
         ${selected ? theme.border : 'border-transparent'}
-        ${isWaiting ? 'opacity-60' : ''}
+        ${isWaiting || isSkipped ? 'opacity-60' : ''}
         ${isLocked ? 'nopan' : ''}`}
     >
       {/* Inline toolbar */}
@@ -166,7 +168,16 @@ export function ConditionNode({ id, data, selected }: NodeProps) {
               <span className="thinking-dot mb-1">.</span>
             </Badge>
           )}
-          {isSuccess && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+          {isSuccess && conditionResult && (
+            <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
+              conditionResult === 'true'
+                ? 'bg-emerald-100 text-emerald-700'
+                : 'bg-rose-100 text-rose-600'
+            }`}>
+              {conditionResult === 'true' ? '✓ true' : '✗ false'}
+            </span>
+          )}
+          {isSuccess && !conditionResult && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
           {isError && <AlertCircle className="w-4 h-4 text-rose-500 animate-pulse" />}
         </div>
       </div>

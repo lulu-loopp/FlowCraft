@@ -2,7 +2,11 @@
 
 import { useCallback } from 'react'
 import { useFlowStore } from '@/store/flowStore'
-import { topologicalSort, areUpstreamsComplete } from '@/lib/flow-executor'
+import {
+  topologicalSort,
+  areUpstreamsCompleteOrSkipped,
+  markBranchSkipped,
+} from '@/lib/flow-executor'
 import type { Node } from '@xyflow/react'
 import type { InputFile } from '@/components/canvas/nodes/input-node'
 
@@ -65,11 +69,41 @@ async function executeAgentNode(
   return finalOutput
 }
 
+async function executeConditionNode(
+  node: Node,
+  input: string,
+): Promise<boolean> {
+  const data = node.data as any
+  const mode: 'natural' | 'expression' = data.conditionMode || 'natural'
+  const condition: string = data.conditionValue || ''
+
+  if (!condition.trim()) return true
+
+  const res = await fetch('/api/condition/eval', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      input,
+      condition,
+      mode,
+      provider: data.provider || 'anthropic',
+      model: data.model || 'claude-haiku-4-5-20251001',
+    }),
+  })
+
+  if (!res.ok) throw new Error('Condition evaluation failed')
+  const { result } = await res.json()
+  return !!result
+}
+
 export function useFlowExecution() {
-  const { nodes, edges, setIsRunning, addLog, clearLogs, setNodes } = useFlowStore()
+  const { nodes, edges, setIsRunning, addLog, clearLogs, setNodes, addRunRecord } = useFlowStore()
 
   const runFlow = useCallback(async (userInput?: string) => {
     if (nodes.length === 0) return
+
+    const startedAt = new Date().toISOString()
+    const startMs = Date.now()
 
     setIsRunning(true)
     clearLogs()
@@ -81,6 +115,7 @@ export function useFlowExecution() {
 
     const sortedNodes = topologicalSort(nodes, edges)
     const completedNodeIds = new Set<string>()
+    const skippedNodeIds = new Set<string>()
     const nodeOutputs = new Map<string, string>()
 
     // Read input node data
@@ -97,7 +132,6 @@ export function useFlowExecution() {
     const initialInput = (inputData?.inputText || userInput || 'Start') + textFileContent
 
     if (inputNode) {
-      // Animate the input node: briefly running → success
       useFlowStore.getState().setNodes(
         useFlowStore.getState().nodes.map(n =>
           n.id === inputNode.id ? { ...n, data: { ...n.data, status: 'running' } } : n
@@ -113,12 +147,26 @@ export function useFlowExecution() {
       nodeOutputs.set(inputNode.id, initialInput)
     }
 
+    let runStatus: 'success' | 'error' = 'success'
+
     try {
       for (const node of sortedNodes) {
         if (node.type === 'io') continue
         if (!useFlowStore.getState().isRunning) break
 
-        if (!areUpstreamsComplete(node.id, edges, completedNodeIds)) continue
+        // Skip nodes on inactive branches
+        if (skippedNodeIds.has(node.id)) {
+          useFlowStore.getState().setNodes(
+            useFlowStore.getState().nodes.map(n =>
+              n.id === node.id ? { ...n, data: { ...n.data, status: 'skipped' } } : n
+            )
+          )
+          completedNodeIds.add(node.id)
+          nodeOutputs.set(node.id, '')
+          continue
+        }
+
+        if (!areUpstreamsCompleteOrSkipped(node.id, edges, completedNodeIds, skippedNodeIds)) continue
 
         const upstreamOutputs = edges
           .filter(e => e.target === node.id)
@@ -147,7 +195,6 @@ export function useFlowExecution() {
           let output = ''
 
           if (node.type === 'agent') {
-            // Only pass images to the first agent node receiving from input
             const isDirectlyAfterInput = inputNode
               ? edges.some(e => e.source === inputNode.id && e.target === node.id)
               : false
@@ -187,6 +234,28 @@ export function useFlowExecution() {
                 )
               }
             )
+          } else if (node.type === 'condition') {
+            const result = await executeConditionNode(node, nodeInput)
+
+            const inactiveHandle = result ? 'false-handle' : 'true-handle'
+            markBranchSkipped(node.id, inactiveHandle, edges, completedNodeIds, skippedNodeIds)
+
+            output = nodeInput // pass input through to active branch
+            addLog({
+              nodeName: (node.data?.label as string) || 'Condition',
+              nodeType: 'condition',
+              type: 'system',
+              content: `Evaluated to ${result ? 'true ✓' : 'false ✗'}`,
+            })
+
+            // Store result on node for UI
+            useFlowStore.getState().setNodes(
+              useFlowStore.getState().nodes.map(n =>
+                n.id === node.id
+                  ? { ...n, data: { ...n.data, conditionResult: result ? 'true' : 'false' } }
+                  : n
+              )
+            )
           } else if (node.type === 'human') {
             output = nodeInput
             addLog({
@@ -217,6 +286,7 @@ export function useFlowExecution() {
             content: 'Completed.',
           })
         } catch (err) {
+          runStatus = 'error'
           useFlowStore.getState().setNodes(
             useFlowStore.getState().nodes.map(n =>
               n.id === node.id ? { ...n, data: { ...n.data, status: 'error', currentToken: '' } } : n
@@ -233,8 +303,27 @@ export function useFlowExecution() {
       }
     } finally {
       useFlowStore.getState().setIsRunning(false)
+
+      const record = {
+        id: `run-${Date.now()}`,
+        startedAt,
+        status: runStatus,
+        duration: Date.now() - startMs,
+        nodeCount: sortedNodes.length,
+      }
+      addRunRecord(record)
+
+      // Persist run record
+      const { flowId } = useFlowStore.getState()
+      if (flowId) {
+        fetch(`/api/flows/${flowId}/runs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(record),
+        }).catch(() => {})
+      }
     }
-  }, [nodes, edges, setIsRunning, clearLogs, setNodes, addLog])
+  }, [nodes, edges, setIsRunning, clearLogs, setNodes, addLog, addRunRecord])
 
   return { runFlow }
 }

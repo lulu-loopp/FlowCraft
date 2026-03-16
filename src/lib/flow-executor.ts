@@ -53,3 +53,52 @@ export function areUpstreamsComplete(
     .map(e => e.source)
   return upstreams.every(id => completedNodeIds.has(id))
 }
+
+// 判断节点的所有上游是否都已完成或被跳过
+export function areUpstreamsCompleteOrSkipped(
+  nodeId: string,
+  edges: Edge[],
+  completedIds: Set<string>,
+  skippedIds: Set<string>,
+): boolean {
+  const upstreams = edges.filter(e => e.target === nodeId).map(e => e.source)
+  return upstreams.every(id => completedIds.has(id) || skippedIds.has(id))
+}
+
+// 将条件节点未激活分支的所有下游节点标记为已跳过
+export function markBranchSkipped(
+  conditionNodeId: string,
+  inactiveHandle: string,
+  edges: Edge[],
+  completedIds: Set<string>,
+  skippedIds: Set<string>,
+): void {
+  const isBlockedEdge = (e: Edge) =>
+    e.source === conditionNodeId && e.sourceHandle === inactiveHandle
+
+  let changed = true
+  while (changed) {
+    changed = false
+    // Collect candidate nodes: direct targets of inactive handle + downstream of already-skipped
+    const candidates = new Set<string>()
+    edges
+      .filter(e => e.source === conditionNodeId && e.sourceHandle === inactiveHandle)
+      .forEach(e => candidates.add(e.target))
+    skippedIds.forEach(sid => {
+      edges.filter(e => e.source === sid).forEach(e => candidates.add(e.target))
+    })
+
+    for (const nodeId of candidates) {
+      if (skippedIds.has(nodeId)) continue
+      const incoming = edges.filter(e => e.target === nodeId)
+      if (incoming.length === 0) continue
+      const allBlocked = incoming.every(
+        e => isBlockedEdge(e) || skippedIds.has(e.source)
+      )
+      if (allBlocked) {
+        skippedIds.add(nodeId)
+        changed = true
+      }
+    }
+  }
+}

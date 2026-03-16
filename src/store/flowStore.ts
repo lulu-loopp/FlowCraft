@@ -56,6 +56,7 @@ type FlowState = {
   setFlowId: (id: string) => void;
   setFlowName: (name: string) => void;
   addRunRecord: (record: RunRecord) => void;
+  setRunHistory: (records: RunRecord[]) => void;
   simulateRun: () => Promise<void>;
   simulateRunDemo: () => Promise<void>;
 };
@@ -167,6 +168,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   setFlowId: (id) => set({ flowId: id }),
   setFlowName: (name) => set({ flowName: name }),
   addRunRecord: (record) => set((state) => ({ runHistory: [record, ...state.runHistory].slice(0, 50) })),
+  setRunHistory: (records) => set({ runHistory: records }),
 
   simulateRunDemo: async () => {
     const { nodes, setIsRunning, addLog } = get();

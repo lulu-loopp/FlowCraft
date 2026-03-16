@@ -63,14 +63,21 @@ export function useFlowPersistence(flowId: string) {
   const loadFlow = useCallback(async () => {
     if (!flowId) return;
     try {
-      const res = await fetch(`/api/flows/${flowId}`);
-      if (!res.ok) return;
-      const flow: FlowData = await res.json();
+      const [flowRes, runsRes] = await Promise.all([
+        fetch(`/api/flows/${flowId}`),
+        fetch(`/api/flows/${flowId}/runs`),
+      ]);
+      if (!flowRes.ok) return;
+      const flow: FlowData = await flowRes.json();
       const store = useFlowStore.getState();
       // Single batch update → one Zustand event → one history snapshot
       store.setNodesAndEdges(flow.nodes || [], flow.edges || []);
       store.setFlowName(flow.name || 'Untitled Flow');
       store.setFlowId(flowId);
+      if (runsRes.ok) {
+        const runs = await runsRes.json();
+        store.setRunHistory(Array.isArray(runs) ? runs : []);
+      }
     } catch {
       // fail silently — canvas still usable
     }
