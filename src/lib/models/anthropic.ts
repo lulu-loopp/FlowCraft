@@ -49,7 +49,7 @@ export async function runWithAnthropic(
   const steps: AgentStep[] = []
   let finalOutput = ''
 
-  for (let i = 0; i < maxIterations; i++) {
+  for (let i = 0; i < (maxIterations || 10); i++) {
     let fullText = ''
     let toolName = ''
     let toolId = ''

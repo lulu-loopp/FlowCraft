@@ -78,6 +78,7 @@ async function executeAgentNode(
       let event: any
       try { event = JSON.parse(line.slice(6)) } catch { continue }
 
+      if (event.type === 'error') throw new Error(event.data || 'Agent error')
       if (event.type === 'token') onToken(event.data)
       if (event.type === 'step') {
         onStep(event.data)
