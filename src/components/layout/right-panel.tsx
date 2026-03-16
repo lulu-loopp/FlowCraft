@@ -1,16 +1,87 @@
 'use client';
 
 import React from 'react';
-import { FolderOpen, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FolderOpen, Clock, ChevronLeft, ChevronRight, FileText, RefreshCw } from 'lucide-react';
 import { Tabs } from '../ui/tabs';
 import { useFlowStore } from '@/store/flowStore';
 import { useUIStore } from '@/store/uiStore';
 import { AgentConfigPanel } from './agent-config-panel';
 
+interface WorkspaceFile {
+  name: string;
+  relativePath: string;
+  size: number;
+}
+
+function FilesPanel({ flowId }: { flowId: string }) {
+  const [files, setFiles] = React.useState<WorkspaceFile[]>([]);
+  const [loading, setLoading] = React.useState(false);
+
+  const load = React.useCallback(async () => {
+    if (!flowId) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/workspace/${flowId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setFiles(data.files || []);
+      }
+    } catch { /* ignore */ }
+    setLoading(false);
+  }, [flowId]);
+
+  React.useEffect(() => { load(); }, [load]);
+
+  if (!flowId) return null;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-10">
+        <div className="w-5 h-5 rounded-full border-2 border-teal-500 border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  if (files.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-2 text-center px-4">
+        <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center mb-1">
+          <FolderOpen className="w-5 h-5 text-slate-400" />
+        </div>
+        <p className="text-sm font-medium text-slate-700">No workspace files</p>
+        <p className="text-xs text-slate-400 leading-relaxed">Run the flow to create workspace files.</p>
+        <button onClick={load} className="text-xs text-teal-600 hover:underline flex items-center gap-1 mt-1">
+          <RefreshCw className="w-3 h-3" /> Refresh
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs text-slate-400">{files.length} files</span>
+        <button onClick={load} className="text-xs text-slate-400 hover:text-teal-600 flex items-center gap-1">
+          <RefreshCw className="w-3 h-3" />
+        </button>
+      </div>
+      {files.map(f => (
+        <div key={f.relativePath} className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-slate-50 group">
+          <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium text-slate-700 truncate">{f.relativePath}</p>
+            <p className="text-xs text-slate-400">{(f.size / 1024).toFixed(1)} KB</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function RightPanel() {
   const [activeTab, setActiveTab] = React.useState('config');
   const [isCollapsed, setIsCollapsed] = React.useState(false);
-  const { selectedNodeId, nodes, nodeClickTick, runHistory } = useFlowStore();
+  const { selectedNodeId, nodes, nodeClickTick, runHistory, flowId } = useFlowStore();
   const { t } = useUIStore();
 
   // Auto-expand and switch to config tab when a node is clicked (including re-clicks)
@@ -77,13 +148,7 @@ export function RightPanel() {
           )}
 
           {activeTab === 'files' && (
-            <div className="flex flex-col items-center justify-center h-full gap-2 text-center px-4">
-              <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center mb-1">
-                <FolderOpen className="w-5 h-5 text-slate-400" />
-              </div>
-              <p className="text-sm font-medium text-slate-700">{t('panel.right.noFiles')}</p>
-              <p className="text-xs text-slate-400 leading-relaxed">{t('panel.right.noFilesHint')}</p>
-            </div>
+            <FilesPanel flowId={flowId} />
           )}
 
           {activeTab === 'history' && runHistory.length === 0 && (

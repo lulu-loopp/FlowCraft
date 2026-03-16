@@ -10,14 +10,31 @@ import {
 import type { Node } from '@xyflow/react'
 import type { InputFile } from '@/components/canvas/nodes/input-node'
 
+async function getWorkspaceContext(flowId: string, nodeId: string): Promise<string> {
+  if (!flowId) return '';
+  try {
+    const res = await fetch(`/api/workspace/${flowId}?nodeId=${nodeId}`);
+    if (!res.ok) return '';
+    const { context } = await res.json();
+    return context || '';
+  } catch {
+    return '';
+  }
+}
+
 async function executeAgentNode(
   node: Node,
   input: string,
   inputImages: InputFile[],
+  workspaceContext: string,
   onStep: (step: any) => void,
   onToken: (token: string) => void,
 ): Promise<string> {
   const data = node.data as any
+  const basePrompt = (data.systemPrompt as string) || 'You are a helpful assistant.'
+  const systemPrompt = workspaceContext
+    ? `${workspaceContext}\n\n${basePrompt}`
+    : basePrompt
 
   const response = await fetch('/api/agent/run', {
     method: 'POST',
@@ -26,7 +43,7 @@ async function executeAgentNode(
       config: {
         id: node.id,
         name: (data.label as string) || 'Agent',
-        systemPrompt: (data.systemPrompt as string) || 'You are a helpful assistant.',
+        systemPrompt,
         model: {
           provider: data.provider || 'anthropic',
           model: data.model || 'claude-sonnet-4-6',
@@ -97,13 +114,19 @@ async function executeConditionNode(
 }
 
 export function useFlowExecution() {
-  const { nodes, edges, setIsRunning, addLog, clearLogs, setNodes, addRunRecord } = useFlowStore()
+  const { nodes, edges, setIsRunning, addLog, clearLogs, setNodes, addRunRecord, flowId } = useFlowStore()
 
   const runFlow = useCallback(async (userInput?: string) => {
     if (nodes.length === 0) return
 
     const startedAt = new Date().toISOString()
     const startMs = Date.now()
+    const currentFlowId = useFlowStore.getState().flowId
+
+    // Initialize workspace for this flow (no-op if already exists)
+    if (currentFlowId) {
+      fetch(`/api/workspace/${currentFlowId}`, { method: 'POST' }).catch(() => {})
+    }
 
     setIsRunning(true)
     clearLogs()
@@ -199,9 +222,10 @@ export function useFlowExecution() {
               ? edges.some(e => e.source === inputNode.id && e.target === node.id)
               : false
             const nodeImages = isDirectlyAfterInput ? inputImages : []
+            const wsContext = await getWorkspaceContext(currentFlowId, node.id)
 
             output = await executeAgentNode(
-              node, nodeInput, nodeImages,
+              node, nodeInput, nodeImages, wsContext,
               (step) => {
                 const logType =
                   step.type === 'thinking' ? 'think'
@@ -285,6 +309,17 @@ export function useFlowExecution() {
             type: 'system',
             content: 'Completed.',
           })
+
+          // Update workspace progress after agent node
+          if (node.type === 'agent' && currentFlowId) {
+            const nodeName = (node.data?.label as string) || 'Agent'
+            const summary = output.slice(0, 200).replace(/\n/g, ' ')
+            fetch(`/api/workspace/${currentFlowId}/progress`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ nodeName, outcome: summary }),
+            }).catch(() => {})
+          }
         } catch (err) {
           runStatus = 'error'
           useFlowStore.getState().setNodes(
@@ -323,7 +358,7 @@ export function useFlowExecution() {
         }).catch(() => {})
       }
     }
-  }, [nodes, edges, setIsRunning, clearLogs, setNodes, addLog, addRunRecord])
+  }, [nodes, edges, setIsRunning, clearLogs, setNodes, addLog, addRunRecord, flowId])
 
   return { runFlow }
 }
