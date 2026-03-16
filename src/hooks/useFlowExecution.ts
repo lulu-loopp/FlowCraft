@@ -29,6 +29,7 @@ async function executeAgentNode(
   workspaceContext: string,
   onStep: (step: any) => void,
   onToken: (token: string) => void,
+  defaultProvider = 'anthropic',
 ): Promise<string> {
   const data = node.data as any
   const basePrompt = (data.systemPrompt as string) || 'You are a helpful assistant.'
@@ -45,7 +46,7 @@ async function executeAgentNode(
         name: (data.label as string) || 'Agent',
         systemPrompt,
         model: {
-          provider: data.provider || 'anthropic',
+          provider: data.provider || defaultProvider,
           model: data.model || 'claude-sonnet-4-6',
           apiKey: '',
         },
@@ -94,6 +95,7 @@ async function executeAgentNode(
 async function executeConditionNode(
   node: Node,
   input: string,
+  defaultProvider = 'anthropic',
 ): Promise<boolean> {
   const data = node.data as any
   const mode: 'natural' | 'expression' = data.conditionMode || 'natural'
@@ -108,7 +110,7 @@ async function executeConditionNode(
       input,
       condition,
       mode,
-      provider: data.provider || 'anthropic',
+      provider: data.provider || defaultProvider,
       model: data.model || 'claude-haiku-4-5-20251001',
     }),
   })
@@ -130,6 +132,16 @@ export function useFlowExecution() {
     const startedAt = new Date().toISOString()
     const startMs = Date.now()
     const currentFlowId = useFlowStore.getState().flowId
+
+    // Fetch default provider from settings (fallback for nodes without explicit provider)
+    let defaultProvider = 'anthropic'
+    try {
+      const settingsRes = await fetch('/api/settings')
+      if (settingsRes.ok) {
+        const s = await settingsRes.json()
+        if (s.defaultProvider) defaultProvider = s.defaultProvider
+      }
+    } catch { /* use fallback */ }
 
     // Initialize workspace for this flow (no-op if already exists)
     if (currentFlowId) {
@@ -258,6 +270,7 @@ export function useFlowExecution() {
 
                 useFlowStore.getState().setNodes(
                   useFlowStore.getState().nodes.map(n =>
+
                     n.id === node.id
                       ? { ...n, data: { ...n.data, logs: [...((n.data.logs as any[]) || []), step] } }
                       : n
@@ -272,10 +285,11 @@ export function useFlowExecution() {
                       : n
                   )
                 )
-              }
+              },
+              defaultProvider,
             )
           } else if (node.type === 'condition') {
-            const result = await executeConditionNode(node, nodeInput)
+            const result = await executeConditionNode(node, nodeInput, defaultProvider)
 
             const inactiveHandle = result ? 'false-handle' : 'true-handle'
             markBranchSkipped(node.id, inactiveHandle, edges, completedNodeIds, skippedNodeIds)
