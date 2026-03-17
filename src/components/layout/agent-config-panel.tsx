@@ -1,15 +1,21 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Plus, X, ChevronDown } from 'lucide-react';
-import Link from 'next/link';
 import { useFlowStore } from '@/store/flowStore';
-import { useAgentStore } from '@/store/agent-store';
+import { useRegistryStore } from '@/store/registry-store';
 import { useUIStore } from '@/store/uiStore';
 import { MODEL_OPTIONS, ModelProvider } from '@/types/model';
 import type { Node } from '@xyflow/react';
+import {
+  ConfigThemeCtx,
+  NODE_CONFIG_THEMES,
+  DropdownSelect,
+  ToggleChip,
+  type DropdownOption,
+} from '../canvas/agent-config-parts';
+import { SkillInstallerInline } from '../canvas/skill-installer-inline';
 
 const AVAILABLE_TOOLS = [
   { id: 'web_search',     label: 'Web Search' },
@@ -22,194 +28,11 @@ const AVAILABLE_TOOLS = [
 
 const SCHEMA_TYPES = ['string', 'number', 'boolean', 'object', 'array'];
 
-// ── Per-node-type theme for config panel interactions ────────────────────────
-interface ConfigTheme {
-  focusRing: string;
-  chipActive: string;
-  chipHover: string;
-  dropdownSelected: string;
-  linkText: string;
-  addCriteriaBtn: string;
-}
-
-const NODE_CONFIG_THEMES: Record<string, ConfigTheme> = {
-  agent: {
-    focusRing: 'focus:ring-indigo-500 focus:border-indigo-400',
-    chipActive: 'bg-indigo-600 text-white border-indigo-500 shadow-sm',
-    chipHover: 'hover:border-indigo-200 hover:bg-indigo-50/50',
-    dropdownSelected: 'text-indigo-700 font-medium bg-indigo-50',
-    linkText: 'text-indigo-600',
-    addCriteriaBtn: 'text-indigo-700 border-indigo-100 hover:bg-indigo-50',
-  },
-  tool: {
-    focusRing: 'focus:ring-emerald-500 focus:border-emerald-400',
-    chipActive: 'bg-emerald-600 text-white border-emerald-500 shadow-sm',
-    chipHover: 'hover:border-emerald-200 hover:bg-emerald-50/50',
-    dropdownSelected: 'text-emerald-700 font-medium bg-emerald-50',
-    linkText: 'text-emerald-600',
-    addCriteriaBtn: 'text-emerald-700 border-emerald-100 hover:bg-emerald-50',
-  },
-  skill: {
-    focusRing: 'focus:ring-amber-500 focus:border-amber-400',
-    chipActive: 'bg-amber-600 text-white border-amber-500 shadow-sm',
-    chipHover: 'hover:border-amber-200 hover:bg-amber-50/50',
-    dropdownSelected: 'text-amber-700 font-medium bg-amber-50',
-    linkText: 'text-amber-600',
-    addCriteriaBtn: 'text-amber-700 border-amber-100 hover:bg-amber-50',
-  },
-  human: {
-    focusRing: 'focus:ring-rose-500 focus:border-rose-400',
-    chipActive: 'bg-rose-600 text-white border-rose-500 shadow-sm',
-    chipHover: 'hover:border-rose-200 hover:bg-rose-50/50',
-    dropdownSelected: 'text-rose-700 font-medium bg-rose-50',
-    linkText: 'text-rose-600',
-    addCriteriaBtn: 'text-rose-700 border-rose-100 hover:bg-rose-50',
-  },
-  io: {
-    focusRing: 'focus:ring-sky-500 focus:border-sky-400',
-    chipActive: 'bg-sky-600 text-white border-sky-500 shadow-sm',
-    chipHover: 'hover:border-sky-200 hover:bg-sky-50/50',
-    dropdownSelected: 'text-sky-700 font-medium bg-sky-50',
-    linkText: 'text-sky-600',
-    addCriteriaBtn: 'text-sky-700 border-sky-100 hover:bg-sky-50',
-  },
-  condition: {
-    focusRing: 'focus:ring-slate-500 focus:border-slate-400',
-    chipActive: 'bg-slate-600 text-white border-slate-500 shadow-sm',
-    chipHover: 'hover:border-slate-300 hover:bg-slate-50',
-    dropdownSelected: 'text-slate-700 font-medium bg-slate-100',
-    linkText: 'text-slate-600',
-    addCriteriaBtn: 'text-slate-700 border-slate-200 hover:bg-slate-50',
-  },
-  initializer: {
-    focusRing: 'focus:ring-violet-500 focus:border-violet-400',
-    chipActive: 'bg-violet-600 text-white border-violet-500 shadow-sm',
-    chipHover: 'hover:border-violet-200 hover:bg-violet-50/50',
-    dropdownSelected: 'text-violet-700 font-medium bg-violet-50',
-    linkText: 'text-violet-600',
-    addCriteriaBtn: 'text-violet-700 border-violet-100 hover:bg-violet-50',
-  },
-};
-
-const ConfigThemeCtx = React.createContext<ConfigTheme>(NODE_CONFIG_THEMES.agent);
-
-// ── Custom dropdown with portal (avoids overflow-y-auto clipping) ───────────
-interface DropdownOption { value: string; label: string }
-
-function DropdownSelect({
-  value,
-  onChange,
-  options,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  options: DropdownOption[];
-}) {
-  const theme = React.useContext(ConfigThemeCtx);
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
-  const btnRef = useRef<HTMLButtonElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: PointerEvent) => {
-      if (!containerRef.current?.contains(e.target as unknown as globalThis.Node)) setOpen(false);
-    };
-    document.addEventListener('pointerdown', handler);
-    return () => document.removeEventListener('pointerdown', handler);
-  }, []);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = () => setOpen(false);
-    document.addEventListener('scroll', handler, true);
-    return () => document.removeEventListener('scroll', handler, true);
-  }, [open]);
-
-  const toggle = () => {
-    if (!open && btnRef.current) {
-      const r = btnRef.current.getBoundingClientRect();
-      setPos({ top: r.bottom + 4, left: r.left, width: r.width });
-    }
-    setOpen(o => !o);
-  };
-
-  const currentLabel = options.find(o => o.value === value)?.label ?? value;
-
-  return (
-    <div ref={containerRef} className="relative">
-      <button
-        ref={btnRef}
-        type="button"
-        onClick={toggle}
-        className={`w-full flex items-center justify-between p-2.5 text-sm rounded-lg border border-slate-200 bg-white/50 hover:border-slate-300 hover:bg-white focus:ring-2 ${theme.focusRing} outline-none cursor-pointer transition-all`}
-      >
-        <span className="text-slate-700">{currentLabel}</span>
-        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-      </button>
-
-      {open && typeof document !== 'undefined' && createPortal(
-        <div
-          style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 'var(--z-dropdown)', animation: 'dropdown-in 0.12s ease-out' } as React.CSSProperties}
-          className="bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden"
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          {options.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => { onChange(opt.value); setOpen(false); }}
-              className={`w-full px-3 py-2.5 text-left text-sm transition-colors ${
-                opt.value === value
-                  ? theme.dropdownSelected
-                  : 'text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>,
-        document.body
-      )}
-    </div>
-  );
-}
-
-// ── Toggle chip ──────────────────────────────────────────────────────────────
-function ToggleChip({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  const theme = React.useContext(ConfigThemeCtx);
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className={`relative flex items-center gap-2 text-xs rounded-lg px-2.5 py-2 border transition-all text-left ${
-        checked
-          ? theme.chipActive
-          : `bg-white text-slate-600 border-slate-200 ${theme.chipHover}`
-      }`}
-    >
-      {checked && (
-        <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-white/70" />
-      )}
-      <span className="truncate pr-2">{label}</span>
-    </button>
-  );
-}
-
-// ── Main component ───────────────────────────────────────────────────────────
 interface AgentConfigPanelProps { node: Node }
 
 export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
   const { nodes, setNodes } = useFlowStore();
-  const { skillRegistry, fetchSkills } = useAgentStore();
+  const { skillRegistry, fetchSkills } = useRegistryStore();
   const { t } = useUIStore();
   const promptComposingRef = useRef(false);
 
@@ -218,9 +41,9 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
 
   const [localSystemPrompt, setLocalSystemPrompt] = useState((data.systemPrompt as string) || '');
 
-  // Sync local state when node changes externally (e.g. undo/redo, load)
   useEffect(() => {
     if (!promptComposingRef.current) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocalSystemPrompt((data.systemPrompt as string) || '');
     }
   }, [data.systemPrompt]);
@@ -337,12 +160,9 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
         <div>
           <label className="block text-xs font-medium text-slate-500 mb-2">{t('config.skills')}</label>
           {skillRegistry.length === 0 ? (
-            <p className="text-xs text-slate-400">
-              {t('config.noSkills')}{' '}
-              <Link href="/playground" className={`${theme.linkText} hover:underline`}>{t('config.installSkills')}</Link>
-            </p>
+            <p className="text-xs text-slate-400 mb-2">{t('config.noSkills')}</p>
           ) : (
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-2 gap-1.5 mb-1">
               {skillRegistry.map((skill) => (
                 <ToggleChip
                   key={skill.name}
@@ -358,6 +178,7 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
               ))}
             </div>
           )}
+          <SkillInstallerInline />
         </div>
 
         {/* Completion Criteria */}

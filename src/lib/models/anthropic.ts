@@ -33,11 +33,11 @@ export async function runWithAnthropic(
 
   let firstUserContent: Anthropic.MessageParam['content']
   if (inputImages && inputImages.length > 0) {
-    const content: any[] = [{ type: 'text', text: goal }]
+    const content: Array<{ type: string; text?: string; source?: { type: string; media_type: string; data: string } }> = [{ type: 'text', text: goal }]
     for (const img of inputImages) {
       content.push({ type: 'image', source: { type: 'base64', media_type: img.mimeType, data: img.base64 } })
     }
-    firstUserContent = content
+    firstUserContent = content as Anthropic.MessageParam['content']
   } else {
     firstUserContent = goal
   }

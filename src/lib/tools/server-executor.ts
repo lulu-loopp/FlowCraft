@@ -9,7 +9,21 @@ import { writeFileSync, unlinkSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 
+const MAX_CODE_SIZE = 20_000
+
+function readCode(input: Record<string, unknown>): string {
+  const code = input.code
+  if (typeof code !== 'string' || !code.trim()) {
+    throw new Error('Missing code')
+  }
+  if (code.length > MAX_CODE_SIZE) {
+    throw new Error(`Code is too large (max ${MAX_CODE_SIZE} chars)`)
+  }
+  return code
+}
+
 export async function runCodeExecute(input: Record<string, unknown>): Promise<string> {
+  const code = readCode(input)
   const logs: string[] = []
   const sandbox = {
     console: { log: (...args: unknown[]) => logs.push(args.join(' ')) },
@@ -20,8 +34,9 @@ export async function runCodeExecute(input: Record<string, unknown>): Promise<st
     String,
     Number,
   }
-  vm.createContext(sandbox)
-  vm.runInContext(input.code as string, sandbox, { timeout: 5000 })
+  vm.createContext(sandbox, { codeGeneration: { strings: false, wasm: false } })
+  const script = new vm.Script(code, { filename: 'flowcraft-user.js' })
+  script.runInContext(sandbox, { timeout: 5000 })
   return logs.join('\n') || 'No output'
 }
 
@@ -38,9 +53,11 @@ function isNotFoundError(stderr: string): boolean {
 }
 
 export async function runPythonExecute(input: Record<string, unknown>): Promise<string> {
-  const timeout = (input.timeout as number | undefined) ?? 10000
+  const code = readCode(input)
+  const rawTimeout = typeof input.timeout === 'number' ? input.timeout : 10000
+  const timeout = Math.min(Math.max(rawTimeout, 100), 20000)
   const tmpFile = join(tmpdir(), `flowcraft_${Date.now()}.py`)
-  writeFileSync(tmpFile, input.code as string)
+  writeFileSync(tmpFile, code)
 
   for (const cmd of PYTHON_CANDIDATES) {
     const result = await new Promise<{ ok: boolean; output: string }>((resolve) => {

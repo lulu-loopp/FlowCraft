@@ -1,0 +1,99 @@
+{
+  "id": "flow-1773628273193",
+  "name": "Untitled Flow",
+  "nodes": [
+    {
+      "id": "agent-1773628376054",
+      "type": "agent",
+      "position": {
+        "x": 245.10613560162955,
+        "y": 82.69546203497006
+      },
+      "data": {
+        "label": "agent node",
+        "status": "success",
+        "logs": [
+          {
+            "id": "b9ce9785-0258-438d-a3bd-193f9634f7e8",
+            "type": "thinking",
+            "content": "你好！请问有什么我可以帮你的吗？",
+            "timestamp": 1773628648035
+          },
+          {
+            "id": "31c126ca-ec7d-45bc-9d55-d308f96cb7d6",
+            "type": "done",
+            "content": "你好！请问有什么我可以帮你的吗？",
+            "timestamp": 1773628648035
+          }
+        ],
+        "currentOutput": "你好！请问有什么我可以帮你的吗？",
+        "currentToken": "",
+        "provider": "openai",
+        "model": "gpt-4o-mini"
+      },
+      "measured": {
+        "width": 260,
+        "height": 202
+      },
+      "selected": true,
+      "dragging": false
+    },
+    {
+      "id": "io-1773628383930",
+      "type": "io",
+      "position": {
+        "x": -105.26099127257518,
+        "y": 27.867018516487676
+      },
+      "data": {
+        "label": "io node",
+        "inputText": "你好",
+        "status": "success",
+        "logs": [],
+        "currentOutput": "",
+        "currentToken": ""
+      },
+      "measured": {
+        "width": 260,
+        "height": 221
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "output-1773628388695",
+      "type": "output",
+      "position": {
+        "x": 725.1893361659023,
+        "y": 195.02690729234868
+      },
+      "data": {
+        "label": "output node",
+        "status": "success",
+        "logs": [],
+        "currentOutput": "你好！请问有什么我可以帮你的吗？",
+        "currentToken": ""
+      },
+      "measured": {
+        "width": 260,
+        "height": 180
+      }
+    }
+  ],
+  "edges": [
+    {
+      "type": "custom",
+      "source": "io-1773628383930",
+      "target": "agent-1773628376054",
+      "id": "xy-edge__io-1773628383930-agent-1773628376054"
+    },
+    {
+      "type": "custom",
+      "source": "agent-1773628376054",
+      "target": "output-1773628388695",
+      "id": "xy-edge__agent-1773628376054-output-1773628388695"
+    }
+  ],
+  "createdAt": "2026-03-16T02:31:13.195Z",
+  "updatedAt": "2026-03-16T02:37:28.937Z"
+}

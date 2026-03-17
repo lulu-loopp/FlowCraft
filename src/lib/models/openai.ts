@@ -44,14 +44,14 @@ export async function runWithOpenAI(
 ): Promise<RunResult> {
   const client = createClient(config)
 
-  const firstUserMessage: any =
+  const firstUserMessage: OpenAI.ChatCompletionUserMessageParam =
     inputImages && inputImages.length > 0
       ? {
           role: 'user',
           content: [
-            { type: 'text', text: goal },
+            { type: 'text' as const, text: goal },
             ...inputImages.map(img => ({
-              type: 'image_url',
+              type: 'image_url' as const,
               image_url: { url: `data:${img.mimeType};base64,${img.base64}` },
             })),
           ],

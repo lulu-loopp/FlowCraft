@@ -1,0 +1,115 @@
+{
+  "id": "flow-1773681614960",
+  "name": "review-condition-flow",
+  "nodes": [
+    {
+      "id": "io-1",
+      "type": "io",
+      "position": {
+        "x": -74.28356050151547,
+        "y": 4.0518305728099335
+      },
+      "data": {
+        "label": "Input",
+        "inputText": "yes",
+        "status": "success",
+        "logs": [],
+        "currentOutput": "",
+        "currentToken": ""
+      },
+      "measured": {
+        "width": 260,
+        "height": 221
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "c-1",
+      "type": "condition",
+      "position": {
+        "x": 298.59454393837507,
+        "y": 44.57013630090928
+      },
+      "data": {
+        "label": "Cond",
+        "conditionMode": "expression",
+        "conditionValue": "output.includes(\"yes\")",
+        "status": "success",
+        "logs": [],
+        "currentOutput": "yes",
+        "currentToken": "",
+        "conditionResult": "true"
+      },
+      "measured": {
+        "width": 260,
+        "height": 198
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "o-t",
+      "type": "output",
+      "position": {
+        "x": 615.8384776858135,
+        "y": -77.2987796181267
+      },
+      "data": {
+        "label": "TrueOut",
+        "status": "success",
+        "logs": [],
+        "currentOutput": "yes",
+        "currentToken": ""
+      },
+      "measured": {
+        "width": 260,
+        "height": 180
+      },
+      "selected": true,
+      "dragging": false
+    },
+    {
+      "id": "o-f",
+      "type": "output",
+      "position": {
+        "x": 621.24091844956,
+        "y": 274.4878674948768
+      },
+      "data": {
+        "label": "FalseOut",
+        "status": "skipped",
+        "logs": [],
+        "currentOutput": "",
+        "currentToken": ""
+      },
+      "measured": {
+        "width": 260,
+        "height": 153
+      },
+      "selected": false,
+      "dragging": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-1",
+      "source": "io-1",
+      "target": "c-1"
+    },
+    {
+      "id": "e-t",
+      "source": "c-1",
+      "sourceHandle": "true-handle",
+      "target": "o-t"
+    },
+    {
+      "id": "e-f",
+      "source": "c-1",
+      "sourceHandle": "false-handle",
+      "target": "o-f"
+    }
+  ],
+  "createdAt": "2026-03-16T17:20:14.961Z",
+  "updatedAt": "2026-03-16T17:44:01.305Z"
+}

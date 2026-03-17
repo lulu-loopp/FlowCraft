@@ -1,6 +1,7 @@
 import type { ModelConfig } from '@/types/model'
 import type { AgentStep } from '@/types/agent'
 import type { Tool } from '@/types/tool'
+import type { SkillName } from './definitions'
 import { createResearchSkill } from './research-skill'
 import { createCodeSkill }     from './code-skill'
 

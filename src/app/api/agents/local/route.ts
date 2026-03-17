@@ -2,10 +2,14 @@ import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
 import { addAgentEntry } from '@/lib/registry-manager';
+import { requireMutationAuth } from '@/lib/api-auth';
 
 const AGENTS_DIR = path.join(process.cwd(), 'agents');
 
 export async function POST(req: Request) {
+  const denied = await requireMutationAuth(req);
+  if (denied) return denied;
+
   try {
     const body = await req.json() as { name: string; description?: string; instructions: string };
     const cleanName = body.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9_-]/g, '');

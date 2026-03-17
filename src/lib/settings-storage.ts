@@ -7,6 +7,7 @@ export interface AppSettings {
   deepseekApiKey?: string;
   tavilyApiKey?: string;
   braveApiKey?: string;
+  apiToken?: string;
   defaultProvider?: string;
   defaultModel?: string;
   workspacePath?: string;

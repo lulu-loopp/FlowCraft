@@ -45,6 +45,7 @@ export function LeftPanel() {
 
   const filteredNodes = NODE_TYPES.filter(n =>
     !search ||
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     t(n.key as any).toLowerCase().includes(search.toLowerCase()) ||
     n.type.includes(search.toLowerCase())
   );
@@ -71,7 +72,7 @@ export function LeftPanel() {
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search nodes..."
+              placeholder={t('panel.left.searchPlaceholder')}
               className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-slate-400 focus:border-slate-400 outline-none transition-all"
             />
           </div>
@@ -89,7 +90,7 @@ export function LeftPanel() {
           {nodesOpen && (
             <div className="space-y-1 mb-1">
               {filteredNodes.length === 0 ? (
-                <p className="text-xs text-slate-400 px-3 py-3 text-center">No matching nodes</p>
+                <p className="text-xs text-slate-400 px-3 py-3 text-center">{t('panel.left.noMatchingNodes')}</p>
               ) : filteredNodes.map((node) => {
                 const Icon = node.icon;
                 return (
@@ -102,7 +103,7 @@ export function LeftPanel() {
                     <div className={`p-1.5 rounded-lg ${node.bg} ${node.color} shrink-0`}>
                       <Icon className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-sm font-medium text-slate-700">{t(node.key as any)}</span>
+                    <span className="text-sm font-medium text-slate-700">{t(node.key as import('@/lib/i18n').TranslationKey)}</span>
                   </div>
                 );
               })}
@@ -160,7 +161,7 @@ export function LeftPanel() {
                    text-slate-300 hover:text-slate-600 hover:bg-slate-50
                    shadow-[2px_0_6px_rgba(0,0,0,0.06)]
                    transition-colors cursor-pointer"
-        title={isCollapsed ? 'Expand' : 'Collapse'}
+        title={isCollapsed ? t('panel.left.expand') : t('panel.left.collapse')}
       >
         {isCollapsed
           ? <ChevronRight className="w-3 h-3" />

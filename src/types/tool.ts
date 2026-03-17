@@ -7,6 +7,7 @@ export interface ToolDefinition {
     properties: Record<string, {
       type: string
       description: string
+      enum?: string[]
     }>
     required: string[]
   }

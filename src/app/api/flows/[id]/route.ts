@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { readFlow, writeFlow, deleteFlow, ensureDefaultFlow } from '@/lib/flow-storage';
+import { requireMutationAuth } from '@/lib/api-auth';
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -19,6 +20,9 @@ export async function GET(_req: Request, { params }: Params) {
 }
 
 export async function PUT(request: Request, { params }: Params) {
+  const denied = await requireMutationAuth(request);
+  if (denied) return denied;
+
   const { id } = await params;
   try {
     const body = await request.json();
@@ -30,7 +34,10 @@ export async function PUT(request: Request, { params }: Params) {
   }
 }
 
-export async function DELETE(_req: Request, { params }: Params) {
+export async function DELETE(req: Request, { params }: Params) {
+  const denied = await requireMutationAuth(req);
+  if (denied) return denied;
+
   const { id } = await params;
   try {
     const ok = await deleteFlow(id);

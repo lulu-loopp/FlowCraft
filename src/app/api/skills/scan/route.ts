@@ -1,7 +1,11 @@
 import { NextRequest } from 'next/server'
 import { scanGitHubRepo } from '@/lib/github-downloader'
+import { requireMutationAuth } from '@/lib/api-auth'
 
 export async function POST(req: NextRequest) {
+  const denied = await requireMutationAuth(req)
+  if (denied) return denied
+
   const body = await req.json() as { source: string }
 
   try {

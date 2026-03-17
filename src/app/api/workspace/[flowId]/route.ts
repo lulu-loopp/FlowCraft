@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { initWorkspace, listFiles, buildSessionContext } from '@/lib/workspace-manager';
+import { requireMutationAuth } from '@/lib/api-auth';
 
 interface Params {
   params: Promise<{ flowId: string }>;
@@ -27,6 +28,9 @@ export async function GET(req: Request, { params }: Params) {
 
 // POST → initialize workspace structure for the flow
 export async function POST(_req: Request, { params }: Params) {
+  const denied = await requireMutationAuth(_req);
+  if (denied) return denied;
+
   const { flowId } = await params;
   try {
     await initWorkspace(flowId);

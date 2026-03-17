@@ -3,6 +3,8 @@ import { runAgent, buildSystemPromptWithSkills } from '@/lib/agent-runner'
 import { createTools } from '@/lib/tools'
 import { createSkills } from '@/lib/skills'
 import { readSkillRegistry } from '@/lib/registry-manager'
+import { requireMutationAuth } from '@/lib/api-auth'
+import { readToolApiKeys } from '@/lib/tool-api-keys'
 import type { ToolName } from '@/lib/tools'
 import type { SkillName } from '@/lib/skills'
 import type { AgentConfig, StreamEvent } from '@/types/agent'
@@ -24,11 +26,16 @@ async function getModelApiKey(provider: string): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await requireMutationAuth(req)
+  if (denied) return denied
+
   const body = await req.json() as {
     config: Omit<AgentConfig, 'tools'>
     goal: string
     enabledTools: ToolName[]
     enabledSkills: SkillName[]
+    // File-system skill names selected for this specific node/session
+    enabledFileSkills?: string[]
     inputImages?: Array<{ base64: string; mimeType: string; name: string }>
   }
 
@@ -41,9 +48,13 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // 从文件系统读取 skill 注册表，构建包含启用 skills 的 system prompt
+  // 从文件系统读取 skill 注册表，构建 system prompt
+  // 如果请求指定了 enabledFileSkills，只注入那些 skill；否则使用全局 enabled 标志
   const { skills } = await readSkillRegistry().catch(() => ({ skills: [] }))
-  const systemPrompt = await buildSystemPromptWithSkills(body.config.systemPrompt, skills)
+  const fileSkillsToInject = body.enabledFileSkills && body.enabledFileSkills.length > 0
+    ? skills.filter(s => body.enabledFileSkills!.includes(s.name)).map(s => ({ ...s, enabled: true }))
+    : skills.filter(s => s.enabled)
+  const systemPrompt = await buildSystemPromptWithSkills(body.config.systemPrompt, fileSkillsToInject)
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -54,7 +65,7 @@ export async function POST(req: NextRequest) {
 
       const tools = await createTools(
         body.enabledTools,
-        { tavily: process.env.NEXT_PUBLIC_TAVILY_KEY ?? '' }
+        await readToolApiKeys()
       )
 
       const skillTools = createSkills(

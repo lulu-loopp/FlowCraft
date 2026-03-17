@@ -12,7 +12,6 @@ export function CustomEdge({
   targetPosition,
   style = {},
   markerEnd,
-  animated,
   selected,
   data,
 }: EdgeProps) {

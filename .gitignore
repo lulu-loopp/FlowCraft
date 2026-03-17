@@ -51,3 +51,15 @@ next-env.d.ts
 
 # Source reference files
 /flowcraft-source/
+
+# Runtime data & secrets
+/settings.json
+/workspace/
+/tmp/
+/flows/*-run-*.json
+/flows/*-runs.json
+
+# Test artifacts
+/test-screenshots/
+/test*.png
+/doc/review-screenshots/

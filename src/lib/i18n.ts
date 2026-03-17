@@ -54,6 +54,10 @@ export const translations = {
     'config.defineSchema': 'Define output field',
     'config.noSkills': 'No skills installed.',
     'config.installSkills': 'Install from Playground',
+    'config.installSkillsInline': 'Install skill',
+    'config.scan': 'Scan',
+    'config.install': 'Install',
+    'config.paste': 'Paste',
     // Home page
     'home.tagline': 'Build AI workflows without writing code',
     'home.openCanvas': 'Open canvas',
@@ -77,6 +81,17 @@ export const translations = {
     'canvas.goalPlaceholder': 'e.g. Research the latest AI frameworks...',
     'canvas.cancel': 'Cancel',
     'canvas.run': 'Run',
+    'canvas.nodesSelected': '{count} nodes selected',
+    'canvas.packIntoAgent': 'Pack into Agent',
+    // Pack dialog
+    'packDialog.title': 'Pack into Agent',
+    'packDialog.agentName': 'Agent name',
+    'packDialog.agentNamePlaceholder': 'e.g. research-agent',
+    'packDialog.agentNameHint': 'Lowercase letters, numbers, and hyphens only.',
+    'packDialog.description': 'Description',
+    'packDialog.optional': '(optional)',
+    'packDialog.descriptionPlaceholder': 'What does this agent do?',
+    'packDialog.pack': 'Pack',
     // Settings page
     'settings.title': 'Settings',
     'settings.apiKeys': 'API Keys',
@@ -91,7 +106,39 @@ export const translations = {
     'node.condition.expression': 'Expr',
     'node.condition.placeholder': 'If the output contains...',
     'node.condition.exprPlaceholder': 'output.length > 100',
+    // Node toolbar actions
+    'node.duplicate': 'Duplicate',
+    'node.delete': 'Delete',
+    'node.lockPosition': 'Lock Position',
+    'node.unlockPosition': 'Unlock Position',
+    // Node inline content
+    'node.human.requiresInput': 'Requires user input',
+    'node.agent.viewAll': 'View all',
+    'node.agent.viewFull': '...double-click node to view full output',
+    'node.agent.executionState': 'Execution State',
+    'node.agent.streaming': 'Streaming...',
+    // Output node
+    'node.output.collectDescription': 'Collects flow result',
+    'node.output.copySuccess': 'Copied to clipboard',
+    'node.output.copyResult': 'Copy result',
+    'node.output.viewFullResult': 'View full result',
+    'node.output.waiting': 'Waiting for upstream output...',
+    'node.output.doubleClickView': '...double-click to view full content',
+    // Left panel
+    'panel.left.searchPlaceholder': 'Search nodes...',
+    'panel.left.noMatchingNodes': 'No matching nodes',
+    'panel.left.expand': 'Expand',
+    'panel.left.collapse': 'Collapse',
+    // Right panel files
+    'panel.right.runToCreateFiles': 'Run the flow to create workspace files.',
+    'panel.right.refresh': 'Refresh',
+    'panel.right.filesLabel': 'files',
+    // Toolbar
+    'toolbar.cmdEnterToRun': '⌘↵ to run',
+    // Input node
+    'node.io.unsupportedFormat': 'Unsupported format: {name}\nSupported: images, txt, md, csv, json, code files',
   },
+
   zh: {
     // Toolbar
     'toolbar.save': '保存',
@@ -147,6 +194,10 @@ export const translations = {
     'config.defineSchema': '添加输出字段',
     'config.noSkills': '未安装技能。',
     'config.installSkills': '前往 Playground 安装',
+    'config.installSkillsInline': '安装技能',
+    'config.scan': '扫描',
+    'config.install': '安装',
+    'config.paste': '粘贴',
     // Home page
     'home.tagline': '无需写代码，轻松搭建 AI 自动化流程',
     'home.openCanvas': '打开画布',
@@ -170,6 +221,17 @@ export const translations = {
     'canvas.goalPlaceholder': '例如：分析最新 AI 框架...',
     'canvas.cancel': '取消',
     'canvas.run': '运行',
+    'canvas.nodesSelected': '已选中 {count} 个节点',
+    'canvas.packIntoAgent': '打包为 Agent',
+    // Pack dialog
+    'packDialog.title': '打包为 Agent',
+    'packDialog.agentName': 'Agent 名称',
+    'packDialog.agentNamePlaceholder': '例如：research-agent',
+    'packDialog.agentNameHint': '仅支持小写字母、数字和连字符。',
+    'packDialog.description': '描述',
+    'packDialog.optional': '（可选）',
+    'packDialog.descriptionPlaceholder': '这个 Agent 负责什么？',
+    'packDialog.pack': '打包',
     // Settings page
     'settings.title': '设置',
     'settings.apiKeys': 'API 密钥',
@@ -184,6 +246,37 @@ export const translations = {
     'node.condition.expression': '表达式',
     'node.condition.placeholder': '如果输出包含...',
     'node.condition.exprPlaceholder': 'output.length > 100',
+    // Node toolbar actions
+    'node.duplicate': '复制',
+    'node.delete': '删除',
+    'node.lockPosition': '锁定位置',
+    'node.unlockPosition': '解锁位置',
+    // Node inline content
+    'node.human.requiresInput': '需要用户输入',
+    'node.agent.viewAll': '查看全部',
+    'node.agent.viewFull': '...双击节点查看完整内容',
+    'node.agent.executionState': '执行状态',
+    'node.agent.streaming': '流式输出中...',
+    // Output node
+    'node.output.collectDescription': '汇总流程输出结果',
+    'node.output.copySuccess': '已复制到剪贴板',
+    'node.output.copyResult': '复制结果',
+    'node.output.viewFullResult': '查看完整结果',
+    'node.output.waiting': '等待上游节点输出...',
+    'node.output.doubleClickView': '...双击查看全部内容',
+    // Left panel
+    'panel.left.searchPlaceholder': '搜索节点...',
+    'panel.left.noMatchingNodes': '无匹配节点',
+    'panel.left.expand': '展开',
+    'panel.left.collapse': '收起',
+    // Right panel files
+    'panel.right.runToCreateFiles': '运行流程以创建工作区文件。',
+    'panel.right.refresh': '刷新',
+    'panel.right.filesLabel': '个文件',
+    // Toolbar
+    'toolbar.cmdEnterToRun': '⌘↵ 运行',
+    // Input node
+    'node.io.unsupportedFormat': '暂不支持该格式：{name}\n支持：图片、txt、md、csv、json、代码文件',
   },
 } as const;
 

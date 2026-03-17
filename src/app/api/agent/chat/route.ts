@@ -3,6 +3,8 @@ import { runAgent, buildSystemPromptWithSkills } from '@/lib/agent-runner'
 import { createTools } from '@/lib/tools'
 import { createSkills } from '@/lib/skills'
 import { readSkillRegistry } from '@/lib/registry-manager'
+import { requireMutationAuth } from '@/lib/api-auth'
+import { readToolApiKeys } from '@/lib/tool-api-keys'
 import type { ToolName } from '@/lib/tools'
 import type { SkillName } from '@/lib/skills'
 import type { AgentConfig, ChatMessage, StreamEvent } from '@/types/agent'
@@ -23,6 +25,9 @@ async function getModelApiKey(provider: string): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await requireMutationAuth(req)
+  if (denied) return denied
+
   const body = await req.json() as {
     config: Omit<AgentConfig, 'tools'>
     history: ChatMessage[]
@@ -59,7 +64,7 @@ export async function POST(req: NextRequest) {
 
       const tools = await createTools(
         body.enabledTools,
-        { tavily: process.env.NEXT_PUBLIC_TAVILY_KEY ?? '' }
+        await readToolApiKeys()
       )
 
       const skillTools = createSkills(

@@ -13,6 +13,7 @@ import { createCodeExecuteTool }   from './code-execute'
 import { createPythonExecuteTool } from './python-executor'
 import { loadMCPTools }            from '@/lib/mcp/client'
 import { getMCPServerForTool }     from '@/lib/mcp/servers'
+import type { ToolApiKeys } from '@/lib/tool-api-keys'
 
 export type { ToolName }                from './definitions'
 export { TOOL_DESCRIPTIONS, MCP_TOOLS } from './definitions'
@@ -66,14 +67,14 @@ function createCompositeFetchTool(mcpToolMap: Map<string, Tool>): Tool {
 
 export async function createTools(
   enabledTools: ToolName[],
-  apiKeys: Record<string, string>
+  apiKeys: ToolApiKeys
 ): Promise<Tool[]> {
   const tools: Tool[] = []
 
   for (const name of enabledTools) {
     if (name === 'url_fetch') {
       // 复合工具：加载所有 fetch 变体，让 AI 通过 format 参数选择
-      const serverConfig = getMCPServerForTool(name)
+      const serverConfig = getMCPServerForTool(name, apiKeys)
       if (serverConfig) {
         try {
           const rawTools = await loadMCPTools(serverConfig)
@@ -88,7 +89,7 @@ export async function createTools(
       }
     } else if (MCP_TOOLS.includes(name)) {
       // 其他 MCP 工具（如 brave_search）
-      const serverConfig = getMCPServerForTool(name)
+      const serverConfig = getMCPServerForTool(name, apiKeys)
       if (serverConfig) {
         try {
           const rawTools = await loadMCPTools(serverConfig)

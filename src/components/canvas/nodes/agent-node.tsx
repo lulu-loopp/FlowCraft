@@ -3,13 +3,16 @@ import { NodeProps } from '@xyflow/react'
 import ReactMarkdown from 'react-markdown'
 import { BaseNode } from './base-node'
 import { OutputModal } from './output-modal'
+import { useUIStore } from '@/store/uiStore'
 
 export function AgentNode({ id, data, selected }: NodeProps) {
   const [showModal, setShowModal] = React.useState(false)
+  const { t } = useUIStore()
 
   const label = (data?.label as string) || 'Agent'
   const description = (data?.description as string) || 'Executes autonomous tasks'
   const status = data?.status as string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const logs = data?.logs as any[]
   const currentToken = (data?.currentToken as string) || ''
   const currentOutput = (data?.currentOutput as string) || ''
@@ -21,6 +24,7 @@ export function AgentNode({ id, data, selected }: NodeProps) {
         type="agent"
         label={label}
         description={description}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         status={status as any}
         selected={selected}
         onDoubleClick={() => currentOutput && setShowModal(true)}
@@ -45,10 +49,10 @@ export function AgentNode({ id, data, selected }: NodeProps) {
         {status === 'running' && !currentToken && logs && logs.length > 0 && (
           <div className="mt-2 bg-slate-50 border border-slate-100 rounded-lg p-2 font-mono text-[10px] text-slate-600 space-y-1 ring-1 ring-indigo-200 ring-offset-1">
             <div className="flex justify-between items-center mb-1 pb-1 border-b border-slate-100 text-[9px] text-slate-400 uppercase tracking-tighter">
-              <span>Execution State</span>
-              <span className="text-indigo-500 animate-pulse">Streaming...</span>
+              <span>{t('node.agent.executionState')}</span>
+              <span className="text-indigo-500 animate-pulse">{t('node.agent.streaming')}</span>
             </div>
-            {logs.slice(-3).map((log: any, i: number) => (
+            {(logs as { type: string; content: string }[]).slice(-3).map((log, i: number) => (
               <div key={`${log.type}-${i}`} className="flex animate-fade-in-up">
                 <span className="text-indigo-600 mr-1 font-bold shrink-0">[{log.type}]</span>
                 <span className="truncate">{log.content}</span>
@@ -66,13 +70,13 @@ export function AgentNode({ id, data, selected }: NodeProps) {
                 onClick={e => { e.stopPropagation(); setShowModal(true) }}
                 className="text-[9px] text-slate-400 hover:text-indigo-500 transition-colors"
               >
-                查看全部
+                {t('node.agent.viewAll')}
               </button>
             </div>
             <div className="px-2 pb-2 max-h-32 overflow-y-auto prose-node text-slate-700">
               <ReactMarkdown>{currentOutput.slice(0, 600)}</ReactMarkdown>
               {currentOutput.length > 600 && (
-                <p className="text-slate-400 text-xs mt-1">...双击节点查看完整内容</p>
+                <p className="text-slate-400 text-xs mt-1">{t('node.agent.viewFull')}</p>
               )}
             </div>
           </div>

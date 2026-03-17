@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { readSettings } from '@/lib/settings-storage';
+import { requireMutationAuth } from '@/lib/api-auth';
+import { evaluateConditionExpression } from '@/lib/condition-expression';
 
 function getApiKey(provider: string, settings: Awaited<ReturnType<typeof readSettings>>): string {
   switch (provider) {
@@ -45,17 +47,10 @@ async function evaluateNatural(
   return text.startsWith('true');
 }
 
-function evaluateExpression(input: string, expression: string): boolean {
-  try {
-    // eslint-disable-next-line no-new-func
-    const fn = new Function('output', `"use strict"; return !!(${expression})`);
-    return fn(input);
-  } catch {
-    return false;
-  }
-}
-
 export async function POST(req: Request) {
+  const denied = await requireMutationAuth(req);
+  if (denied) return denied;
+
   try {
     const body = await req.json() as {
       input: string;
@@ -67,7 +62,7 @@ export async function POST(req: Request) {
     const { input, condition, mode, provider = 'anthropic', model = 'claude-haiku-4-5-20251001' } = body;
 
     if (mode === 'expression') {
-      return NextResponse.json({ result: evaluateExpression(input, condition) });
+      return NextResponse.json({ result: evaluateConditionExpression(input, condition) });
     }
 
     const settings = await readSettings();

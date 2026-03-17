@@ -1,5 +1,6 @@
 import type { Tool } from '@/types/tool'
 import type { ModelConfig } from '@/types/model'
+import { readToolApiKeys } from '@/lib/tool-api-keys'
 
 export interface SkillConfig {
   name: string
@@ -29,7 +30,7 @@ export function createSkillTool(config: SkillConfig): Tool {
 
       const tools = await createTools(
         config.enabledTools as never,
-        { tavily: process.env.NEXT_PUBLIC_TAVILY_KEY ?? '' }
+        await readToolApiKeys()
       )
 
       const goal = Object.entries(input)

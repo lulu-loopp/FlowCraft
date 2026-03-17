@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAgentStore } from '@/store/agent-store'
+import { useRegistryStore } from '@/store/registry-store'
 import { ScanResultPanel, InstalledItem } from './RegistryComponents'
 import type { ScannedItem } from '@/types/registry'
 
@@ -21,9 +21,9 @@ export function AgentInstaller() {
     toggleAgentEnabled,
     clearAgentScanResult,
     clearAgentError,
-  } = useAgentStore()
+  } = useRegistryStore()
 
-  useEffect(() => { fetchAgents() }, [])
+  useEffect(() => { fetchAgents() }, [fetchAgents])
 
   async function handleScan() {
     if (!urlInput.trim() || isAgentScanning) return

@@ -2,13 +2,22 @@ import { NextRequest } from 'next/server'
 import fs from 'fs/promises'
 import path from 'path'
 import { updateAgentEntry, removeAgentEntry } from '@/lib/registry-manager'
+import { requireMutationAuth } from '@/lib/api-auth'
 
 const AGENTS_DIR = path.join(process.cwd(), 'agents')
+
+const SAFE_NAME_RE = /^[a-zA-Z0-9_-]+$/
+function assertSafeName(name: string): void {
+  if (!SAFE_NAME_RE.test(name)) throw new Error(`Invalid name: ${name}`)
+}
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ name: string }> }
 ) {
+  const denied = await requireMutationAuth(req)
+  if (denied) return denied
+
   const { name } = await params
   const body = await req.json() as { enabled: boolean }
   try {
@@ -23,11 +32,15 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ name: string }> }
 ) {
+  const denied = await requireMutationAuth(req)
+  if (denied) return denied
+
   const { name } = await params
   try {
+    assertSafeName(name)
     const agentDir = path.join(AGENTS_DIR, name)
     await fs.rm(agentDir, { recursive: true, force: true })
     await removeAgentEntry(name)

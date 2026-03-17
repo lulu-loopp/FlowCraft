@@ -93,16 +93,6 @@ export function ExecutionLog() {
 }
 
 function StepRow({ step }: { step: AgentStep }) {
-  const colorMap = {
-    thinking:    { bg: 'rgba(147,130,255,.15)', color: '#9382ff', border: 'rgba(147,130,255,.2)', label: 'T' },
-    tool_call:   { bg: 'rgba(200,240,96,.1)',   color: '#c8f060', border: 'rgba(200,240,96,.2)',  label: 'A' },
-    tool_result: { bg: 'rgba(255,180,80,.1)',   color: '#ffb450', border: 'rgba(255,180,80,.2)',  label: 'O' },
-    done:        { bg: 'rgba(80,220,140,.1)',   color: '#50dc8c', border: 'rgba(80,220,140,.2)',  label: 'D' },
-    error:       { bg: 'rgba(255,107,107,.1)',  color: '#ff6b6b', border: 'rgba(255,107,107,.2)', label: '!' },
-  }
-
-  const style = colorMap[step.type]
-
   const labelMap = {
     thinking:    'think',
     tool_call:   `tool_call → ${step.toolName ?? ''}`,

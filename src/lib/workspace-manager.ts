@@ -15,7 +15,10 @@ async function getWorkspaceRoot(): Promise<string> {
     : path.join(process.cwd(), 'workspace');
 }
 
+const SAFE_ID_RE = /^[a-zA-Z0-9_-]+$/;
+
 export async function getWorkspaceDir(flowId: string): Promise<string> {
+  if (!SAFE_ID_RE.test(flowId)) throw new Error(`Invalid flowId: ${flowId}`);
   const root = await getWorkspaceRoot();
   return path.join(root, flowId);
 }
@@ -102,7 +105,7 @@ export async function buildSessionContext(flowId: string, nodeId: string): Promi
     try {
       const { features } = JSON.parse(featuresRaw);
       if (features?.length) {
-        const summary = features.map((f: any) => `- [${f.passes ? 'x' : ' '}] ${f.description}`).join('\n');
+        const summary = (features as { passes: boolean; description: string }[]).map((f) => `- [${f.passes ? 'x' : ' '}] ${f.description}`).join('\n');
         parts.push(`## Task Checklist\n${summary}`);
       }
     } catch { /* ignore */ }

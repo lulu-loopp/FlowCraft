@@ -1,15 +1,15 @@
 'use client'
 
-import { useRef, useEffect, useState, useCallback, KeyboardEvent } from 'react'
+import { useRef, useEffect, useState, useCallback, useMemo, KeyboardEvent } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { useAgentStore } from '@/store/agent-store'
+import { useRegistryStore } from '@/store/registry-store'
 
 export function ChatPanel() {
   const {
     config,
     enabledTools,
     enabledSkills,
-    skillRegistry,
     chatState,
     sendMessage,
     appendAssistantToken,
@@ -18,8 +18,12 @@ export function ChatPanel() {
     clearChat,
     compressIfNeeded,
   } = useAgentStore()
+  const { skillRegistry } = useRegistryStore()
 
-  const enabledSkillNames = skillRegistry.filter((sk) => sk.enabled).map((sk) => sk.name)
+  const enabledSkillNames = useMemo(
+    () => skillRegistry.filter((sk) => sk.enabled).map((sk) => sk.name),
+    [skillRegistry]
+  )
   const [input, setInput] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -98,7 +102,7 @@ export function ChatPanel() {
       }
       setChatStatus('error')
     }
-  }, [input, chatState, config, sendMessage, appendAssistantToken, finishAssistantMessage, setChatStatus, compressIfNeeded])
+  }, [input, chatState, config, enabledTools, enabledSkills, enabledSkillNames, sendMessage, appendAssistantToken, finishAssistantMessage, setChatStatus, compressIfNeeded])
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {

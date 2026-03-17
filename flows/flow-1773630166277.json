@@ -1,0 +1,24 @@
+{
+  "id": "flow-1773630166277",
+  "name": "Untitled Flow",
+  "nodes": [
+    {
+      "id": "agent-1773630177616",
+      "type": "agent",
+      "position": {
+        "x": 422,
+        "y": 220
+      },
+      "data": {
+        "label": "agent node"
+      },
+      "measured": {
+        "width": 260,
+        "height": 144
+      }
+    }
+  ],
+  "edges": [],
+  "createdAt": "2026-03-16T03:02:46.277Z",
+  "updatedAt": "2026-03-16T03:02:58.492Z"
+}

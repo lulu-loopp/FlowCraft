@@ -20,6 +20,7 @@ const API_KEY_FIELDS: { key: keyof AppSettings; label: string; placeholder: stri
   { key: 'deepseekApiKey', label: 'DeepSeek', placeholder: 'sk-...' },
   { key: 'tavilyApiKey', label: 'Tavily', placeholder: 'tvly-...' },
   { key: 'braveApiKey', label: 'Brave Search', placeholder: 'BSA...' },
+  { key: 'apiToken', label: 'API Token', placeholder: 'Set for remote mutation APIs' },
 ];
 
 export default function SettingsPage() {

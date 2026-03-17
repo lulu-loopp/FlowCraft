@@ -1,0 +1,40 @@
+{
+  "id": "flow-1773629778227",
+  "name": "Untitled Flow",
+  "nodes": [
+    {
+      "id": "agent-1773629782333",
+      "type": "agent",
+      "position": {
+        "x": 352,
+        "y": 220
+      },
+      "data": {
+        "label": "agent node"
+      },
+      "measured": {
+        "width": 260,
+        "height": 144
+      },
+      "selected": true
+    },
+    {
+      "id": "condition-1773629792728",
+      "type": "condition",
+      "position": {
+        "x": 534.5,
+        "y": 292
+      },
+      "data": {
+        "label": "condition node"
+      },
+      "measured": {
+        "width": 260,
+        "height": 202
+      }
+    }
+  ],
+  "edges": [],
+  "createdAt": "2026-03-16T02:56:18.228Z",
+  "updatedAt": "2026-03-16T02:56:34.960Z"
+}

@@ -22,7 +22,7 @@ export type GlobalLog = {
 export type RunRecord = {
   id: string;
   startedAt: string;
-  status: 'success' | 'error';
+  status: 'success' | 'error' | 'stopped' | 'cancelled';
   duration: number;
   nodeCount: number;
 };
@@ -50,7 +50,7 @@ type FlowState = {
   setSelectedNodeId: (id: string | null) => void;
   setIsRunning: (running: boolean) => void;
   setNodeStatus: (id: string, status: string) => void;
-  updateNodeData: (id: string, key: string, value: any) => void;
+  updateNodeData: (id: string, key: string, value: unknown) => void;
   addLog: (log: Omit<GlobalLog, 'id' | 'timestamp'> & { nodeId?: string }) => void;
   clearLogs: () => void;
   setFlowId: (id: string) => void;
@@ -157,7 +157,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       globalLogs: [...state.globalLogs, newLog],
       nodes: log.nodeId 
         ? state.nodes.map(n => n.id === log.nodeId 
-            ? { ...n, data: { ...n.data, logs: [...(n.data.logs as any[] || []), newLog] } }
+            ? { ...n, data: { ...n.data, logs: [...((n.data.logs as unknown[]) || []), newLog] } }
             : n)
         : state.nodes
     }));

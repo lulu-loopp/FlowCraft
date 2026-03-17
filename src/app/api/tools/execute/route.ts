@@ -1,7 +1,11 @@
 import { NextRequest } from 'next/server'
 import { runCodeExecute, runPythonExecute } from '@/lib/tools/server-executor'
+import { requireMutationAuth } from '@/lib/api-auth'
 
 export async function POST(req: NextRequest) {
+  const denied = await requireMutationAuth(req)
+  if (denied) return denied
+
   const body = await req.json() as {
     toolName: 'code_execute' | 'python_execute'
     input: Record<string, unknown>
@@ -22,6 +26,6 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     return Response.json({
       error: err instanceof Error ? err.message : 'unknown error',
-    })
+    }, { status: 500 })
   }
 }

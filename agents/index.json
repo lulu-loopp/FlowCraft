@@ -7,6 +7,14 @@
       "installedAt": 1773535656667,
       "enabled": true,
       "path": "agents/actix-expert"
+    },
+    {
+      "name": "my-test-agent",
+      "description": "Packed agent: my-test-agent",
+      "source": "local",
+      "installedAt": 1773628251546,
+      "enabled": true,
+      "path": "agents/my-test-agent"
     }
   ]
 }

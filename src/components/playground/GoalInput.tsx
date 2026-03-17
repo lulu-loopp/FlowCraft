@@ -2,11 +2,13 @@
 
 import { useState } from 'react'
 import { useAgentStore } from '@/store/agent-store'
+import { useRegistryStore } from '@/store/registry-store'
 import type { StreamEvent } from '@/types/agent'
 
 export function GoalInput() {
   const [goal, setGoal] = useState('')
-  const { config, enabledTools, enabledSkills, skillRegistry, runState, startRun, stopRun, appendStep, appendToken, finishRun, errorRun, resetRun, clearSubSteps } = useAgentStore()
+  const { config, enabledTools, enabledSkills, runState, startRun, stopRun, appendStep, appendToken, finishRun, errorRun, resetRun, clearSubSteps } = useAgentStore()
+  const { skillRegistry } = useRegistryStore()
   const enabledSkillNames = skillRegistry.filter((sk) => sk.enabled).map((sk) => sk.name)
 
   const isRunning = runState.status === 'running'

@@ -39,8 +39,9 @@ export async function loadMCPTools(config: MCPServerConfig): Promise<Tool[]> {
       })
 
       // MCP 返回的 content 是数组，提取文字内容
-      const text = result.content
-        .filter((c): c is { type: 'text'; text: string } => c.type === 'text')
+      const content = (result.content as Array<{ type: string; text?: string }>) ?? []
+      const text = content
+        .filter((c): c is { type: 'text'; text: string } => c.type === 'text' && typeof c.text === 'string')
         .map((c) => c.text)
         .join('\n')
 

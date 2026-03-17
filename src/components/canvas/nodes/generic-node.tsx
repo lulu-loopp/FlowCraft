@@ -1,8 +1,11 @@
 import React from 'react';
 import { NodeProps } from '@xyflow/react';
 import { BaseNode } from './base-node';
+import { useUIStore } from '@/store/uiStore';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function GenericNode({ id, data, selected, type }: NodeProps & { type: any }) {
+  const { t } = useUIStore();
   const label = (data?.label as string) || type;
   const description = data?.description as string | undefined;
   const status = data?.status as string;
@@ -13,6 +16,7 @@ export function GenericNode({ id, data, selected, type }: NodeProps & { type: an
       type={type}
       label={label}
       description={description}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       status={status as any}
       selected={selected}
     >
@@ -22,7 +26,7 @@ export function GenericNode({ id, data, selected, type }: NodeProps & { type: an
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
           </span>
-          Requires user input
+          {t('node.human.requiresInput')}
         </div>
       )}
     </BaseNode>

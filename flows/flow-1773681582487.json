@@ -1,0 +1,38 @@
+{
+  "id": "flow-1773681582487",
+  "name": "review-flow-updated",
+  "nodes": [
+    {
+      "id": "io-1",
+      "type": "io",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "data": {
+        "label": "Input",
+        "inputText": "hello"
+      }
+    },
+    {
+      "id": "out-1",
+      "type": "output",
+      "position": {
+        "x": 300,
+        "y": 100
+      },
+      "data": {
+        "label": "Output"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "io-1",
+      "target": "out-1"
+    }
+  ],
+  "createdAt": "2026-03-16T17:19:42.488Z",
+  "updatedAt": "2026-03-16T17:19:42.555Z"
+}

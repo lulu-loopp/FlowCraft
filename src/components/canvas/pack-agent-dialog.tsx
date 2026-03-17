@@ -3,6 +3,7 @@
 import React from 'react';
 import { X, Blocks } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useUIStore } from '@/store/uiStore';
 
 interface Props {
   defaultName?: string;
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function PackAgentDialog({ defaultName = '', onConfirm, onClose }: Props) {
+  const { t } = useUIStore();
   const [name, setName] = React.useState(defaultName);
   const [description, setDescription] = React.useState('');
 
@@ -37,7 +39,7 @@ export function PackAgentDialog({ defaultName = '', onConfirm, onClose }: Props)
             <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center">
               <Blocks className="w-4 h-4 text-teal-600" />
             </div>
-            <h2 className="text-base font-semibold text-slate-900">Pack into Agent</h2>
+            <h2 className="text-base font-semibold text-slate-900">{t('packDialog.title')}</h2>
           </div>
           <button
             onClick={onClose}
@@ -50,35 +52,35 @@ export function PackAgentDialog({ defaultName = '', onConfirm, onClose }: Props)
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-slate-700 mb-1.5">
-              Agent name <span className="text-rose-500">*</span>
+              {t('packDialog.agentName')} <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
               autoFocus
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder="e.g. research-agent"
+              placeholder={t('packDialog.agentNamePlaceholder')}
               className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             />
             <p className="mt-1 text-xs text-slate-400">
-              Lowercase letters, numbers, and hyphens only.
+              {t('packDialog.agentNameHint')}
             </p>
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-700 mb-1.5">
-              Description <span className="text-slate-400">(optional)</span>
+              {t('packDialog.description')} <span className="text-slate-400">{t('packDialog.optional')}</span>
             </label>
             <input
               type="text"
               value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder="What does this agent do?"
+              placeholder={t('packDialog.descriptionPlaceholder')}
               className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             />
           </div>
           <div className="flex gap-2 pt-1">
             <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
-              Cancel
+              {t('canvas.cancel')}
             </Button>
             <Button
               type="submit"
@@ -86,7 +88,7 @@ export function PackAgentDialog({ defaultName = '', onConfirm, onClose }: Props)
               className="flex-1 bg-teal-600 hover:bg-teal-700 text-white"
             >
               <Blocks className="w-3.5 h-3.5 mr-1.5" />
-              Pack
+              {t('packDialog.pack')}
             </Button>
           </div>
         </form>

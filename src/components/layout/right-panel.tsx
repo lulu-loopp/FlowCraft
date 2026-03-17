@@ -16,6 +16,7 @@ interface WorkspaceFile {
 function FilesPanel({ flowId }: { flowId: string }) {
   const [files, setFiles] = React.useState<WorkspaceFile[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const { t } = useUIStore();
 
   const load = React.useCallback(async () => {
     if (!flowId) return;
@@ -48,10 +49,10 @@ function FilesPanel({ flowId }: { flowId: string }) {
         <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center mb-1">
           <FolderOpen className="w-5 h-5 text-slate-400" />
         </div>
-        <p className="text-sm font-medium text-slate-700">No workspace files</p>
-        <p className="text-xs text-slate-400 leading-relaxed">Run the flow to create workspace files.</p>
+        <p className="text-sm font-medium text-slate-700">{t('panel.right.noFiles')}</p>
+        <p className="text-xs text-slate-400 leading-relaxed">{t('panel.right.runToCreateFiles')}</p>
         <button onClick={load} className="text-xs text-teal-600 hover:underline flex items-center gap-1 mt-1">
-          <RefreshCw className="w-3 h-3" /> Refresh
+          <RefreshCw className="w-3 h-3" /> {t('panel.right.refresh')}
         </button>
       </div>
     );
@@ -60,7 +61,7 @@ function FilesPanel({ flowId }: { flowId: string }) {
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs text-slate-400">{files.length} files</span>
+        <span className="text-xs text-slate-400">{files.length} {t('panel.right.filesLabel')}</span>
         <button onClick={load} className="text-xs text-slate-400 hover:text-teal-600 flex items-center gap-1">
           <RefreshCw className="w-3 h-3" />
         </button>
@@ -90,6 +91,7 @@ export function RightPanel() {
       setIsCollapsed(false);
       setActiveTab('config');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodeClickTick]);
 
   const selectedNode = React.useMemo(
@@ -173,7 +175,9 @@ export function RightPanel() {
                       className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                         record.status === 'success'
                           ? 'bg-emerald-50 text-emerald-700'
-                          : 'bg-rose-50 text-rose-700'
+                          : record.status === 'error'
+                            ? 'bg-rose-50 text-rose-700'
+                            : 'bg-amber-50 text-amber-700'
                       }`}
                     >
                       {record.status}
@@ -200,7 +204,7 @@ export function RightPanel() {
                    text-slate-300 hover:text-slate-600 hover:bg-slate-50
                    shadow-[-2px_0_6px_rgba(0,0,0,0.06)]
                    transition-colors cursor-pointer"
-        title={isCollapsed ? 'Expand' : 'Collapse'}
+        title={isCollapsed ? t('panel.left.expand') : t('panel.left.collapse')}
       >
         {isCollapsed
           ? <ChevronLeft  className="w-3 h-3" />

@@ -55,7 +55,7 @@ export function ConditionNode({ id, data, selected }: NodeProps) {
             <button
               className="p-2 text-slate-500 hover:text-teal-600 hover:bg-teal-50 active:scale-90 rounded-md transition-all"
               onClick={(e) => { e.stopPropagation(); duplicateNode(id); }}
-              title="Duplicate"
+              title={t('node.duplicate')}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
@@ -64,7 +64,7 @@ export function ConditionNode({ id, data, selected }: NodeProps) {
             <button
               className={`p-2 rounded-md transition-all active:scale-90 ${isLocked ? 'text-amber-500 bg-amber-50' : 'text-slate-500 hover:text-amber-600 hover:bg-slate-50'}`}
               onClick={(e) => { e.stopPropagation(); toggleNodeLock(id); }}
-              title={isLocked ? 'Unlock Position' : 'Lock Position'}
+              title={isLocked ? t('node.unlockPosition') : t('node.lockPosition')}
             >
               {isLocked ? (
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -80,7 +80,7 @@ export function ConditionNode({ id, data, selected }: NodeProps) {
             <button
               className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 active:scale-90 rounded-md transition-all"
               onClick={(e) => { e.stopPropagation(); removeNode(id); }}
-              title="Delete"
+              title={t('node.delete')}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>

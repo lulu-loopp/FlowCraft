@@ -4,6 +4,7 @@ import path from 'path'
 import { parseGitHubUrl, downloadSingleMdFile } from '@/lib/github-downloader'
 import { readSkillRegistry, addSkillEntry } from '@/lib/registry-manager'
 import { parseSkillMd } from '@/lib/skills/skill-loader'
+import { requireMutationAuth } from '@/lib/api-auth'
 import type { ScannedItem } from '@/types/registry'
 
 const SKILLS_DIR = path.join(process.cwd(), 'skills')
@@ -18,6 +19,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await requireMutationAuth(req)
+  if (denied) return denied
+
   const body = await req.json() as {
     source: string
     selectedItems?: ScannedItem[]  // GitHub 模式：用户选中的 skill

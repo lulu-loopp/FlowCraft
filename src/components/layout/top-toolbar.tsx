@@ -8,7 +8,7 @@ import { Badge } from '../ui/badge';
 import { useFlowStore } from '@/store/flowStore';
 import { useUIStore } from '@/store/uiStore';
 import { useFlowExecution } from '@/hooks/useFlowExecution';
-import { useFlowPersistence, type SaveStatus } from '@/hooks/useFlowPersistence';
+import { useFlowPersistence } from '@/hooks/useFlowPersistence';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { flowToYaml } from '@/lib/flow-yaml';
 import type { FlowData } from '@/types/flow';
@@ -224,7 +224,7 @@ export function TopToolbar() {
               value={flowInput}
               onChange={(e) => setFlowInput(e.target.value)}
             />
-            <p className="text-xs text-slate-400 mt-1.5">⌘↵ to run</p>
+            <p className="text-xs text-slate-400 mt-1.5">{t('toolbar.cmdEnterToRun')}</p>
             <div className="flex justify-end gap-2 mt-4">
               <button
                 onClick={() => setShowInputDialog(false)}

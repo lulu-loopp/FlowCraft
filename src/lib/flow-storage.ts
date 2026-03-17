@@ -3,6 +3,13 @@ import path from 'path';
 import type { FlowData, FlowMeta } from '@/types/flow';
 
 export const FLOWS_DIR = path.join(process.cwd(), 'flows');
+
+const SAFE_ID_RE = /^[a-zA-Z0-9_-]+$/;
+export function assertSafeId(id: string): void {
+  if (!SAFE_ID_RE.test(id)) {
+    throw new Error(`Invalid flow id: ${id}`);
+  }
+}
 const INDEX_FILE = path.join(FLOWS_DIR, 'index.json');
 
 async function ensureDir(): Promise<void> {
@@ -42,6 +49,7 @@ export async function listFlows(): Promise<FlowMeta[]> {
 }
 
 export async function readFlow(id: string): Promise<FlowData | null> {
+  assertSafeId(id);
   await ensureDir();
   const filePath = path.join(FLOWS_DIR, `${id}.json`);
   try {
@@ -56,6 +64,7 @@ export async function writeFlow(
   id: string,
   data: Partial<FlowData> & { name: string }
 ): Promise<FlowData> {
+  assertSafeId(id);
   await ensureDir();
   const filePath = path.join(FLOWS_DIR, `${id}.json`);
 
@@ -102,6 +111,7 @@ export async function writeFlow(
 }
 
 export async function deleteFlow(id: string): Promise<boolean> {
+  assertSafeId(id);
   await ensureDir();
   const filePath = path.join(FLOWS_DIR, `${id}.json`);
   try {

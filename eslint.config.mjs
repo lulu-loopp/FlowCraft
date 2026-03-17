@@ -12,6 +12,13 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Non-source directories
+    "flowcraft-source/**",
+    "doc/**",
+    "skills/**",
+    "agents/**",
+    "tmp/**",
+    "test-screenshots/**",
   ]),
 ]);
 

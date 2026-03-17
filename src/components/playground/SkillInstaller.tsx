@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAgentStore } from '@/store/agent-store'
+import { useRegistryStore } from '@/store/registry-store'
 import { ScanResultPanel, InstalledItem } from './RegistryComponents'
 import type { ScannedItem } from '@/types/registry'
 
@@ -26,9 +26,9 @@ export function SkillInstaller() {
     toggleSkillEnabled,
     clearScanResult,
     clearSkillError,
-  } = useAgentStore()
+  } = useRegistryStore()
 
-  useEffect(() => { fetchSkills() }, [])
+  useEffect(() => { fetchSkills() }, [fetchSkills])
 
   async function handleScan() {
     if (!urlInput.trim() || isScanning) return
@@ -45,7 +45,7 @@ export function SkillInstaller() {
   async function handleManualInstall() {
     if (!pasteInput.trim() || isInstallingSkill) return
     await installSkillManual(pasteInput.trim())
-    if (!useAgentStore.getState().skillError) setPasteInput('')
+    if (!useRegistryStore.getState().skillError) setPasteInput('')
   }
 
   const isLoading = isScanning || isInstallingSkill

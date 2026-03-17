@@ -2,6 +2,7 @@
 import React from 'react'
 import { Handle, Position, NodeProps } from '@xyflow/react'
 import { useFlowStore } from '@/store/flowStore'
+import { useUIStore } from '@/store/uiStore'
 import { Upload, X, FileText, CheckCircle2 } from 'lucide-react'
 
 export interface InputFile {
@@ -24,6 +25,7 @@ function readAsDataURL(file: File): Promise<string> {
 
 export function InputNode({ id, data, selected }: NodeProps) {
   const { setNodes, nodes, removeNode, duplicateNode, toggleNodeLock } = useFlowStore()
+  const { t } = useUIStore()
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const composingRef = React.useRef(false)
 
@@ -42,6 +44,7 @@ export function InputNode({ id, data, selected }: NodeProps) {
   const currentNode = nodes.find(n => n.id === id)
   const isLocked = currentNode ? currentNode.draggable === false : false
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateData = (key: string, value: any) => {
     setNodes(nodes.map(n =>
       n.id === id ? { ...n, data: { ...n.data, [key]: value } } : n
@@ -69,7 +72,7 @@ export function InputNode({ id, data, selected }: NodeProps) {
         continue
       }
 
-      alert(`暂不支持该格式：${file.name}\n支持：图片、txt、md、csv、json、代码文件`)
+      alert(t('node.io.unsupportedFormat').replace('{name}', file.name))
     }
 
     updateData('inputFiles', [...inputFiles, ...newFiles])
@@ -93,14 +96,14 @@ export function InputNode({ id, data, selected }: NodeProps) {
             <button
               className="p-2 text-slate-500 hover:text-teal-600 hover:bg-teal-50 active:scale-90 rounded-md transition-all"
               onClick={e => { e.stopPropagation(); duplicateNode(id) }}
-              title="Duplicate"
+              title={t('node.duplicate')}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
             </button>
             <button
               className={`p-2 rounded-md transition-all active:scale-90 ${isLocked ? 'text-amber-500 bg-amber-50' : 'text-slate-500 hover:text-amber-600 hover:bg-slate-50'}`}
               onClick={e => { e.stopPropagation(); toggleNodeLock(id) }}
-              title={isLocked ? 'Unlock Position' : 'Lock Position'}
+              title={isLocked ? t('node.unlockPosition') : t('node.lockPosition')}
             >
               {isLocked
                 ? <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -111,7 +114,7 @@ export function InputNode({ id, data, selected }: NodeProps) {
             <button
               className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 active:scale-90 rounded-md transition-all"
               onClick={e => { e.stopPropagation(); removeNode(id) }}
-              title="Delete"
+              title={t('node.delete')}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
             </button>
@@ -160,6 +163,7 @@ export function InputNode({ id, data, selected }: NodeProps) {
             {inputFiles.map((file, index) => (
               <div key={index} className="flex items-center gap-2 p-1.5 bg-slate-50 rounded-lg border border-slate-100">
                 {file.type === 'image' ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={file.preview} alt={file.name} className="w-8 h-8 rounded object-cover shrink-0" />
                 ) : (
                   <div className="w-8 h-8 rounded bg-slate-200 flex items-center justify-center shrink-0">

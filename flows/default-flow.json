@@ -1,8 +1,87 @@
 {
   "id": "default-flow",
   "name": "Default Flow",
-  "nodes": [],
-  "edges": [],
-  "createdAt": "2026-03-16T00:49:04.255Z",
-  "updatedAt": "2026-03-16T00:54:30.559Z"
+  "nodes": [
+    {
+      "id": "io-1773627988807",
+      "type": "io",
+      "position": {
+        "x": 93.92643910715111,
+        "y": 97.75049981961169
+      },
+      "data": {
+        "label": "io node",
+        "inputText": "你好",
+        "status": "success",
+        "logs": [],
+        "currentOutput": "",
+        "currentToken": ""
+      },
+      "measured": {
+        "width": 260,
+        "height": 221
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "agent-1773627993425",
+      "type": "agent",
+      "position": {
+        "x": 477.89415578313105,
+        "y": 149.84662218268434
+      },
+      "data": {
+        "label": "agent node",
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "status": "success",
+        "logs": [],
+        "currentOutput": "",
+        "currentToken": ""
+      },
+      "measured": {
+        "width": 260,
+        "height": 144
+      },
+      "selected": true,
+      "dragging": false
+    },
+    {
+      "id": "output-1773627996873",
+      "type": "output",
+      "position": {
+        "x": 1045.1630437365889,
+        "y": 217.37863265333408
+      },
+      "data": {
+        "label": "output node",
+        "status": "success",
+        "logs": [],
+        "currentOutput": "你好",
+        "currentToken": ""
+      },
+      "measured": {
+        "width": 260,
+        "height": 180
+      },
+      "selected": false
+    }
+  ],
+  "edges": [
+    {
+      "type": "custom",
+      "source": "agent-1773627993425",
+      "target": "output-1773627996873",
+      "id": "xy-edge__agent-1773627993425-output-1773627996873"
+    },
+    {
+      "type": "custom",
+      "source": "io-1773627988807",
+      "target": "agent-1773627993425",
+      "id": "xy-edge__io-1773627988807-agent-1773627993425"
+    }
+  ],
+  "createdAt": "2026-03-16T01:44:28.435Z",
+  "updatedAt": "2026-03-16T02:28:08.322Z"
 }

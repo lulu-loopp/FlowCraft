@@ -8,69 +8,123 @@ interface Snapshot {
   edges: Edge[];
 }
 
+interface FlowHistoryState {
+  history: Snapshot[];
+  cursor: number;
+  ignoreNext: boolean;
+  isDragging: boolean;
+}
+
 const MAX_HISTORY = 50;
+const DEFAULT_FLOW_KEY = '__default_flow__';
+const historyByFlow = new Map<string, FlowHistoryState>();
 
-// Module-level state — survives re-renders
-const history: Snapshot[] = [];
-let cursor = -1;
-let ignoreNext = false;
-let isDragging = false;
+function getFlowKey(): string {
+  return useFlowStore.getState().flowId || DEFAULT_FLOW_KEY;
+}
 
-function pushSnapshot(snap: Snapshot) {
-  history.splice(cursor + 1);
-  history.push({ nodes: snap.nodes, edges: snap.edges });
-  if (history.length > MAX_HISTORY) history.shift();
-  cursor = history.length - 1;
+function getFlowHistoryState(flowKey = getFlowKey()): FlowHistoryState {
+  const existing = historyByFlow.get(flowKey);
+  if (existing) return existing;
+  const created: FlowHistoryState = {
+    history: [],
+    cursor: -1,
+    ignoreNext: false,
+    isDragging: false,
+  };
+  historyByFlow.set(flowKey, created);
+  return created;
+}
+
+function cloneSnapshot(snap: Snapshot): Snapshot {
+  return {
+    nodes: [...snap.nodes],
+    edges: [...snap.edges],
+  };
+}
+
+function pushSnapshot(snap: Snapshot, flowKey = getFlowKey()) {
+  const state = getFlowHistoryState(flowKey);
+  state.history.splice(state.cursor + 1);
+  state.history.push(cloneSnapshot(snap));
+  if (state.history.length > MAX_HISTORY) state.history.shift();
+  state.cursor = state.history.length - 1;
+}
+
+function resetHistory(flowKey: string) {
+  const state = getFlowHistoryState(flowKey);
+  state.history = [];
+  state.cursor = -1;
+  state.ignoreNext = false;
+  state.isDragging = false;
+  const { nodes, edges } = useFlowStore.getState();
+  pushSnapshot({ nodes, edges }, flowKey);
 }
 
 /** Call on ReactFlow onNodeDragStart */
 export function startDrag() {
-  isDragging = true;
+  const state = getFlowHistoryState();
+  state.isDragging = true;
 }
 
-/** Call on ReactFlow onNodeDragStop — pushes final drag position to history */
+/** Call on ReactFlow onNodeDragStop - pushes final drag position to history */
 export function stopDrag() {
-  isDragging = false;
+  const flowKey = getFlowKey();
+  const state = getFlowHistoryState(flowKey);
+  state.isDragging = false;
   const { nodes, edges } = useFlowStore.getState();
-  pushSnapshot({ nodes, edges });
+  pushSnapshot({ nodes, edges }, flowKey);
 }
 
 export function useUndoRedo() {
+  const flowId = useFlowStore((s) => s.flowId);
+
   useEffect(() => {
-    // Subscribe to store changes. Zustand passes (state, prevState).
-    // Only push snapshots for structural changes (node/edge count).
-    // Position changes during drag are handled by stopDrag().
-    // Data changes (typing) are intentionally not tracked.
+    resetHistory(flowId || DEFAULT_FLOW_KEY);
+  }, [flowId]);
+
+  useEffect(() => {
     const unsub = useFlowStore.subscribe((state, prev) => {
       if (state.nodes === prev.nodes && state.edges === prev.edges) return;
-      if (isDragging) return; // position frames during drag: skip
-      if (ignoreNext) { ignoreNext = false; return; } // undo/redo restoration
+
+      const flowKey = getFlowKey();
+      const historyState = getFlowHistoryState(flowKey);
+      if (historyState.isDragging) return;
+      if (historyState.ignoreNext) {
+        historyState.ignoreNext = false;
+        return;
+      }
 
       if (
         state.nodes.length !== prev.nodes.length ||
         state.edges.length !== prev.edges.length
       ) {
-        pushSnapshot({ nodes: state.nodes, edges: state.edges });
+        pushSnapshot({ nodes: state.nodes, edges: state.edges }, flowKey);
       }
     });
     return unsub;
   }, []);
 
   const undo = useCallback(() => {
-    if (cursor <= 0) return;
-    cursor -= 1;
-    const snap = history[cursor];
-    ignoreNext = true;
+    const flowKey = getFlowKey();
+    const state = getFlowHistoryState(flowKey);
+    if (state.cursor <= 0) return;
+    state.cursor -= 1;
+    const snap = state.history[state.cursor];
+    state.ignoreNext = true;
     useFlowStore.getState().setNodesAndEdges([...snap.nodes], [...snap.edges]);
   }, []);
 
   const redo = useCallback(() => {
-    if (cursor >= history.length - 1) return;
-    cursor += 1;
-    const snap = history[cursor];
-    ignoreNext = true;
+    const flowKey = getFlowKey();
+    const state = getFlowHistoryState(flowKey);
+    if (state.cursor >= state.history.length - 1) return;
+    state.cursor += 1;
+    const snap = state.history[state.cursor];
+    state.ignoreNext = true;
     useFlowStore.getState().setNodesAndEdges([...snap.nodes], [...snap.edges]);
   }, []);
 
   return { undo, redo };
 }
+

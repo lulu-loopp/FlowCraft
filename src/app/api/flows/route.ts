@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { listFlows, createFlow } from '@/lib/flow-storage';
+import { requireMutationAuth } from '@/lib/api-auth';
 
 export async function GET() {
   try {
@@ -12,6 +13,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const denied = await requireMutationAuth(request);
+  if (denied) return denied;
+
   try {
     const body = await request.json().catch(() => ({}));
     const flow = await createFlow(body?.name);

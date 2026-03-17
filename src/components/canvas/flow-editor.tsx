@@ -18,14 +18,25 @@ import { Button } from '../ui/button';
 import { Blocks } from 'lucide-react';
 import { startDrag, stopDrag } from '@/hooks/useUndoRedo';
 import { PackAgentDialog } from './pack-agent-dialog';
+import { useUIStore } from '@/store/uiStore';
 
 const edgeTypes = {
   custom: CustomEdge,
 };
 
 function buildInstructions(nodes: Node[]): string {
+  type PackedNodeData = {
+    label?: string
+    systemPrompt?: string
+    model?: string
+    provider?: string
+    enabledTools?: string[]
+    conditionValue?: string
+    conditionMode?: string
+  }
+
   return nodes.map((n, i) => {
-    const d = n.data as any;
+    const d = (n.data || {}) as PackedNodeData;
     const label = (d.label as string) || n.type || 'Node';
     const lines = [`### Step ${i + 1}: ${label} (${n.type})`];
     if (d.systemPrompt) lines.push(`System prompt: ${d.systemPrompt}`);
@@ -44,6 +55,7 @@ function FlowCanvas({ onSave }: FlowCanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, setSelectedNodeId, setNodes, setEdges } = useFlowStore();
   const { screenToFlowPosition } = useReactFlow();
+  const { t } = useUIStore();
   const [packOpen, setPackOpen] = useState(false);
 
   const selectedNodes = React.useMemo(() => nodes.filter(n => n.selected), [nodes]);
@@ -140,7 +152,9 @@ function FlowCanvas({ onSave }: FlowCanvasProps) {
         onNodeDragStart={() => startDrag()}
         onNodeDragStop={() => { stopDrag(); onSave?.(); }}
         deleteKeyCode={['Backspace', 'Delete']}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         nodeTypes={nodeTypes as any}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         edgeTypes={edgeTypes as any}
         defaultEdgeOptions={{ type: 'custom' }}
         onNodeClick={(_, node) => setSelectedNodeId(node.id)}
@@ -170,7 +184,9 @@ function FlowCanvas({ onSave }: FlowCanvasProps) {
 
       {selectedNodesCount > 1 && (
         <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 bg-slate-800/90 backdrop-blur-md px-4 py-2 rounded-full border border-slate-700 shadow-xl flex items-center gap-3 animate-fade-in-up">
-          <span className="text-sm font-medium text-slate-200">{selectedNodesCount} nodes selected</span>
+          <span className="text-sm font-medium text-slate-200">
+            {t('canvas.nodesSelected').replace('{count}', String(selectedNodesCount))}
+          </span>
           <div className="w-[1px] h-4 bg-slate-600" />
           <Button
             size="sm"
@@ -178,7 +194,7 @@ function FlowCanvas({ onSave }: FlowCanvasProps) {
             onClick={() => setPackOpen(true)}
           >
             <Blocks className="w-4 h-4 mr-2" />
-            Pack into Agent
+            {t('canvas.packIntoAgent')}
           </Button>
         </div>
       )}
