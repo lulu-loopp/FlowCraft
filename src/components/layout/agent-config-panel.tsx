@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Plus, X, ChevronDown } from 'lucide-react';
-import { useFlowStore } from '@/store/flowStore';
 import { useRegistryStore } from '@/store/registry-store';
 import { useUIStore } from '@/store/uiStore';
 import { MODEL_OPTIONS, ModelProvider } from '@/types/model';
@@ -16,52 +15,48 @@ import {
   type DropdownOption,
 } from '../canvas/agent-config-parts';
 import { SkillInstallerInline } from '../canvas/skill-installer-inline';
+import { IndividualEditWarning } from '../canvas/individual-edit-warning';
+import { useAgentConfig } from '@/hooks/useAgentConfig';
 
-const AVAILABLE_TOOLS = [
-  { id: 'web_search',     label: 'Web Search' },
-  { id: 'calculator',     label: 'Calculator' },
-  { id: 'url_fetch',      label: 'URL Fetch' },
-  { id: 'code_execute',   label: 'Code Execute' },
-  { id: 'python_execute', label: 'Python Execute' },
-  { id: 'brave_search',   label: 'Brave Search' },
-];
+const AVAILABLE_TOOL_IDS = [
+  { id: 'web_search',     labelKey: 'tool.webSearch' },
+  { id: 'calculator',     labelKey: 'tool.calculator' },
+  { id: 'url_fetch',      labelKey: 'tool.urlFetch' },
+  { id: 'code_execute',   labelKey: 'tool.codeExecute' },
+  { id: 'python_execute', labelKey: 'tool.pythonExecute' },
+  { id: 'brave_search',   labelKey: 'tool.braveSearch' },
+] as const;
 
 const SCHEMA_TYPES = ['string', 'number', 'boolean', 'object', 'array'];
 
 interface AgentConfigPanelProps { node: Node }
 
 export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
-  const { nodes, setNodes } = useFlowStore();
   const { skillRegistry, fetchSkills } = useRegistryStore();
   const { t } = useUIStore();
-  const promptComposingRef = useRef(false);
+
+  const {
+    data,
+    provider,
+    model,
+    enabledTools,
+    enabledSkills,
+    completionCriteria,
+    outputSchema,
+    individualName,
+    localSystemPrompt,
+    setLocalSystemPrompt,
+    promptComposingRef,
+    updateNodeData,
+    showIndividualWarning,
+    onEditOriginal,
+    onCreateCopy,
+    onCancelWarning,
+  } = useAgentConfig(node);
 
   const theme = NODE_CONFIG_THEMES[node.type ?? 'agent'] || NODE_CONFIG_THEMES.agent;
-  const data = node.data as Record<string, unknown>;
-
-  const [localSystemPrompt, setLocalSystemPrompt] = useState((data.systemPrompt as string) || '');
-
-  useEffect(() => {
-    if (!promptComposingRef.current) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setLocalSystemPrompt((data.systemPrompt as string) || '');
-    }
-  }, [data.systemPrompt]);
 
   useEffect(() => { fetchSkills(); }, [fetchSkills]);
-
-  const updateNodeData = (updates: Record<string, unknown>) => {
-    setNodes(nodes.map(n =>
-      n.id === node.id ? { ...n, data: { ...n.data, ...updates } } : n
-    ));
-  };
-
-  const provider           = (data.provider           as ModelProvider) || 'anthropic';
-  const model              = (data.model              as string)        || MODEL_OPTIONS[provider][0];
-  const enabledTools       = (data.enabledTools       as string[])      || [];
-  const enabledSkills      = (data.enabledSkills      as string[])      || [];
-  const completionCriteria = (data.completionCriteria as string[])      || [];
-  const outputSchema       = (data.outputSchema       as { name: string; type: string }[]) || [];
 
   const providerOptions: DropdownOption[] = [
     { value: 'anthropic', label: 'Anthropic' },
@@ -72,6 +67,7 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
   const inputCls = `w-full p-2.5 text-sm rounded-lg border border-slate-200 bg-white/50 hover:border-slate-300 focus:ring-2 ${theme.focusRing} outline-none transition-colors`;
 
   return (
+    <>
     <ConfigThemeCtx.Provider value={theme}>
       <div className="space-y-5">
         {/* Node Name */}
@@ -136,14 +132,37 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
           />
         </div>
 
+        {/* Temperature */}
+        <div>
+          <label className="block text-xs font-medium text-slate-500 mb-1.5">
+            {t('config.temperature')}
+            <span className="ml-2 text-slate-400 font-normal">{((data.temperature as number) ?? 0.7).toFixed(1)}</span>
+          </label>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.1}
+            className="w-full"
+            style={{ accentColor: theme.accentColor }}
+            value={(data.temperature as number) ?? 0.7}
+            onChange={(e) => updateNodeData({ temperature: parseFloat(e.target.value) })}
+          />
+          <div className="flex justify-between text-[10px] text-slate-400 mt-0.5">
+            <span>0</span>
+            <span>0.5</span>
+            <span>1</span>
+          </div>
+        </div>
+
         {/* Capabilities */}
         <div>
           <label className="block text-xs font-medium text-slate-500 mb-2">{t('config.capabilities')}</label>
           <div className="grid grid-cols-2 gap-1.5">
-            {AVAILABLE_TOOLS.map((tool) => (
+            {AVAILABLE_TOOL_IDS.map((tool) => (
               <ToggleChip
                 key={tool.id}
-                label={tool.label}
+                label={t(tool.labelKey)}
                 checked={enabledTools.includes(tool.id)}
                 onChange={(checked) => {
                   const next = checked
@@ -266,5 +285,15 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
         </div>
       </div>
     </ConfigThemeCtx.Provider>
+
+    {showIndividualWarning && individualName && (
+      <IndividualEditWarning
+        individualName={individualName}
+        onEditOriginal={onEditOriginal}
+        onCreateCopy={onCreateCopy}
+        onCancel={onCancelWarning}
+      />
+    )}
+    </>
   );
 }
