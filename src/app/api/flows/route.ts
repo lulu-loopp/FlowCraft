@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { listFlows, createFlow } from '@/lib/flow-storage';
+import { listFlows, createFlow, writeFlow } from '@/lib/flow-storage';
 import { requireMutationAuth } from '@/lib/api-auth';
 
 export async function GET() {
@@ -18,7 +18,17 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json().catch(() => ({}));
-    const flow = await createFlow(body?.name);
+    let flow;
+    if (body?.id && body?.nodes) {
+      // Full flow creation (e.g., save demo as user flow)
+      flow = await writeFlow(body.id, {
+        name: body.name || 'Untitled Flow',
+        nodes: body.nodes,
+        edges: body.edges || [],
+      });
+    } else {
+      flow = await createFlow(body?.name);
+    }
     return NextResponse.json(flow, { status: 201 });
   } catch (err) {
     console.error('[flows POST]', err);

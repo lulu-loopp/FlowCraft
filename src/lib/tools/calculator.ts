@@ -1,4 +1,5 @@
 import type { Tool } from '@/types/tool'
+import { evaluate } from 'mathjs'
 
 export function createCalculatorTool(): Tool {
   return {
@@ -10,7 +11,7 @@ export function createCalculatorTool(): Tool {
         properties: {
           expression: {
             type: 'string',
-            description: '数学表达式，例如 2 + 2、Math.sqrt(16)、Math.sin(Math.PI/2)',
+            description: '数学表达式，例如 2 + 2、sqrt(16)、sin(pi/2)',
           },
         },
         required: ['expression'],
@@ -19,7 +20,7 @@ export function createCalculatorTool(): Tool {
 
     execute: async (input) => {
       try {
-        const result = new Function('Math', `return ${input.expression as string}`)(Math)
+        const result = evaluate(input.expression as string)
         return String(result)
       } catch (err) {
         return `Error: ${err instanceof Error ? err.message : 'unknown error'}`

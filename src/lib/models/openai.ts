@@ -83,7 +83,8 @@ export async function runWithOpenAI(
       tools: tools.length > 0 ? toOpenAITools(tools) : undefined,
       tool_choice: tools.length > 0 ? 'auto' : undefined,
       messages,
-      stream: true,   // 关键
+      stream: true,
+      temperature: config.temperature ?? 0.7,
     })
 
     for await (const chunk of stream) {

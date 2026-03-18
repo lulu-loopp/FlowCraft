@@ -1,14 +1,19 @@
 import { create } from 'zustand';
-import { 
-  Connection, 
-  Edge, 
-  EdgeChange, 
-  Node, 
+import {
+  Connection,
+  Edge,
+  EdgeChange,
+  Node,
   NodeChange,
   addEdge,
   applyNodeChanges,
   applyEdgeChanges,
 } from '@xyflow/react';
+import {
+  createPushViewStack, createPopViewStack, createPopToViewStackIndex,
+  createUnpackNode, createUpdatePackVersion, createDetachPackedNode,
+  createDetachIndividualInPack,
+} from './flowStore-pack-actions';
 
 export type GlobalLog = {
   id: string;
@@ -27,6 +32,13 @@ export type RunRecord = {
   nodeCount: number;
 };
 
+export type ViewStackEntry = {
+  nodeId: string;
+  label: string;
+  parentNodes: Node[];
+  parentEdges: Edge[];
+};
+
 type FlowState = {
   nodes: Node[];
   edges: Edge[];
@@ -37,6 +49,7 @@ type FlowState = {
   flowId: string;
   flowName: string;
   runHistory: RunRecord[];
+  viewStack: ViewStackEntry[];
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
@@ -57,6 +70,15 @@ type FlowState = {
   setFlowName: (name: string) => void;
   addRunRecord: (record: RunRecord) => void;
   setRunHistory: (records: RunRecord[]) => void;
+  /** Reset transient state when loading a different flow. */
+  resetForNewFlow: () => void;
+  pushViewStack: (nodeId: string, label: string) => void;
+  popViewStack: () => void;
+  popToViewStackIndex: (index: number) => void;
+  unpackNode: (nodeId: string) => void;
+  updatePackVersion: (nodeId: string) => void;
+  detachPackedNode: (nodeId: string) => Promise<void>;
+  detachIndividualInPack: (nodeId: string) => void;
   simulateRun: () => Promise<void>;
   simulateRunDemo: () => Promise<void>;
 };
@@ -70,6 +92,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   flowId: '',
   flowName: '',
   runHistory: [],
+  viewStack: [],
   globalLogs: [],
   
   onNodesChange: (changes) => {
@@ -169,6 +192,21 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   setFlowName: (name) => set({ flowName: name }),
   addRunRecord: (record) => set((state) => ({ runHistory: [record, ...state.runHistory].slice(0, 50) })),
   setRunHistory: (records) => set({ runHistory: records }),
+
+  resetForNewFlow: () => set({
+    viewStack: [],
+    selectedNodeId: null,
+    globalLogs: [],
+    isRunning: false,
+  }),
+
+  pushViewStack: (...args) => createPushViewStack(get, set)(...args),
+  popViewStack: () => createPopViewStack(get, set)(),
+  popToViewStackIndex: (...args) => createPopToViewStackIndex(get, set)(...args),
+  unpackNode: (...args) => createUnpackNode(get, set)(...args),
+  updatePackVersion: (...args) => createUpdatePackVersion(get, set)(...args),
+  detachPackedNode: (...args) => createDetachPackedNode(get, set)(...args),
+  detachIndividualInPack: (...args) => createDetachIndividualInPack(get, set)(...args),
 
   simulateRunDemo: async () => {
     const { nodes, setIsRunning, addLog } = get();

@@ -7,11 +7,11 @@ export const NodeColors = {
     hex: '#6366f1'
   },
   tool: {
-    bg: 'bg-emerald-50',
-    border: 'border-emerald-500',
-    text: 'text-emerald-700',
-    badge: 'bg-emerald-100 text-emerald-700',
-    hex: '#10b981'
+    bg: 'bg-cyan-50',
+    border: 'border-cyan-500',
+    text: 'text-cyan-700',
+    badge: 'bg-cyan-100 text-cyan-700',
+    hex: '#06b6d4'
   },
   skill: {
     bg: 'bg-amber-50',
@@ -49,12 +49,45 @@ export const NodeColors = {
     hex: '#8b5cf6'
   },
   output: {
-    bg: 'bg-slate-100',
-    border: 'border-slate-400',
-    text: 'text-slate-600',
-    badge: 'bg-slate-200 text-slate-600',
-    hex: '#64748b'
+    bg: 'bg-emerald-50',
+    border: 'border-emerald-500',
+    text: 'text-emerald-700',
+    badge: 'bg-emerald-100 text-emerald-700',
+    hex: '#10b981'
+  },
+  packed: {
+    bg: 'bg-violet-50',
+    border: 'border-violet-500',
+    text: 'text-violet-700',
+    badge: 'bg-violet-100 text-violet-700',
+    hex: '#7c3aed'
+  },
+  aiCodingAgent: {
+    bg: 'bg-orange-50',
+    border: 'border-[#D97757]',
+    text: 'text-orange-900',
+    badge: 'bg-orange-100 text-orange-900',
+    hex: '#D97757'
   }
+} as const;
+
+export const AiCodingAgentColors = {
+  claudeCode: {
+    headerBg: '#D97757',
+    bodyBg: '#FDF0E9',
+    bg: 'bg-orange-50',
+    border: 'border-[#D97757]',
+    text: 'text-orange-900',
+    hex: '#D97757',
+  },
+  codex: {
+    headerBg: '#0D0D0D',
+    bodyBg: '#F3F4F6',
+    bg: 'bg-gray-50',
+    border: 'border-[#0D0D0D]',
+    text: 'text-gray-900',
+    hex: '#0D0D0D',
+  },
 } as const;
 
 export type NodeType = keyof typeof NodeColors;

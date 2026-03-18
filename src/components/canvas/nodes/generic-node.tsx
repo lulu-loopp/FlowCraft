@@ -2,22 +2,22 @@ import React from 'react';
 import { NodeProps } from '@xyflow/react';
 import { BaseNode } from './base-node';
 import { useUIStore } from '@/store/uiStore';
+import type { NodeStatus } from '@/types/flow';
+import type { NodeType } from '@/styles/tokens';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function GenericNode({ id, data, selected, type }: NodeProps & { type: any }) {
+export function GenericNode({ id, data, selected, type }: NodeProps & { type: string }) {
   const { t } = useUIStore();
   const label = (data?.label as string) || type;
   const description = data?.description as string | undefined;
-  const status = data?.status as string;
+  const status = data?.status as NodeStatus | undefined;
 
   return (
     <BaseNode
       id={id}
-      type={type}
+      type={type as NodeType}
       label={label}
       description={description}
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      status={status as any}
+      status={status}
       selected={selected}
     >
       {type === 'human' && (

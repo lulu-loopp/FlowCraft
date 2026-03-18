@@ -6,7 +6,7 @@ import { requireMutationAuth } from '@/lib/api-auth'
 
 const AGENTS_DIR = path.join(process.cwd(), 'agents')
 
-const SAFE_NAME_RE = /^[a-zA-Z0-9_-]+$/
+const SAFE_NAME_RE = /^[\p{L}\p{N}_-]+$/u
 function assertSafeName(name: string): void {
   if (!SAFE_NAME_RE.test(name)) throw new Error(`Invalid name: ${name}`)
 }

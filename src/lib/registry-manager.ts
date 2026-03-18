@@ -1,11 +1,18 @@
 import fs from 'fs/promises'
 import path from 'path'
-import type { SkillRegistry, AgentRegistry, SkillEntry, AgentEntry } from '@/types/registry'
+import type {
+  SkillRegistry, AgentRegistry, SkillEntry, AgentEntry,
+  IndividualRegistry, PackRegistry, IndividualEntry, PackEntry
+} from '@/types/registry'
 
 const SKILLS_DIR = path.join(process.cwd(), 'skills')
 const AGENTS_DIR = path.join(process.cwd(), 'agents')
+const INDIVIDUALS_DIR = path.join(AGENTS_DIR, 'individuals')
+const PACKS_DIR = path.join(AGENTS_DIR, 'packs')
 const SKILLS_INDEX = path.join(SKILLS_DIR, 'index.json')
 const AGENTS_INDEX = path.join(AGENTS_DIR, 'index.json')
+const INDIVIDUALS_INDEX = path.join(INDIVIDUALS_DIR, 'index.json')
+const PACKS_INDEX = path.join(PACKS_DIR, 'index.json')
 
 async function ensureDir(dir: string, indexPath: string, emptyRegistry: object) {
   await fs.mkdir(dir, { recursive: true })
@@ -84,4 +91,72 @@ export async function updateAgentEntry(
     a.name === name ? { ...a, ...updates } : a
   )
   await writeAgentRegistry(registry)
+}
+
+// Individuals
+export async function readIndividualRegistry(): Promise<IndividualRegistry> {
+  await ensureDir(INDIVIDUALS_DIR, INDIVIDUALS_INDEX, { individuals: [] })
+  const content = await fs.readFile(INDIVIDUALS_INDEX, 'utf-8')
+  return JSON.parse(content)
+}
+
+export async function writeIndividualRegistry(registry: IndividualRegistry): Promise<void> {
+  await fs.writeFile(INDIVIDUALS_INDEX, JSON.stringify(registry, null, 2))
+}
+
+export async function addIndividualEntry(entry: IndividualEntry): Promise<void> {
+  const registry = await readIndividualRegistry()
+  registry.individuals = [...registry.individuals.filter(i => i.name !== entry.name), entry]
+  await writeIndividualRegistry(registry)
+}
+
+export async function removeIndividualEntry(name: string): Promise<void> {
+  const registry = await readIndividualRegistry()
+  registry.individuals = registry.individuals.filter(i => i.name !== name)
+  await writeIndividualRegistry(registry)
+}
+
+export async function updateIndividualEntry(
+  name: string,
+  updates: Partial<IndividualEntry>
+): Promise<void> {
+  const registry = await readIndividualRegistry()
+  registry.individuals = registry.individuals.map(i =>
+    i.name === name ? { ...i, ...updates } : i
+  )
+  await writeIndividualRegistry(registry)
+}
+
+// Packs
+export async function readPackRegistry(): Promise<PackRegistry> {
+  await ensureDir(PACKS_DIR, PACKS_INDEX, { packs: [] })
+  const content = await fs.readFile(PACKS_INDEX, 'utf-8')
+  return JSON.parse(content)
+}
+
+export async function writePackRegistry(registry: PackRegistry): Promise<void> {
+  await fs.writeFile(PACKS_INDEX, JSON.stringify(registry, null, 2))
+}
+
+export async function addPackEntry(entry: PackEntry): Promise<void> {
+  const registry = await readPackRegistry()
+  registry.packs = [...registry.packs.filter(p => p.name !== entry.name), entry]
+  await writePackRegistry(registry)
+}
+
+export async function removePackEntry(name: string): Promise<void> {
+  const registry = await readPackRegistry()
+  registry.packs = registry.packs.filter(p => p.name !== name)
+  await writePackRegistry(registry)
+}
+
+export async function updatePackEntry(
+  name: string,
+  updates: Partial<PackEntry>
+): Promise<void> {
+  const registry = await readPackRegistry()
+  registry.packs = registry.packs.map(p =>
+    p.name === name ? { ...p, ...updates } : p
+  )
+  await writePackRegistry(registry)
 }

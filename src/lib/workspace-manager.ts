@@ -53,8 +53,12 @@ export async function initWorkspace(flowId: string): Promise<void> {
 
 export async function readWorkspaceFile(flowId: string, filename: string): Promise<string> {
   const dir = await getWorkspaceDir(flowId);
+  const fullPath = path.resolve(dir, filename);
+  if (!fullPath.startsWith(path.resolve(dir) + path.sep) && fullPath !== path.resolve(dir)) {
+    throw new Error('Invalid file path');
+  }
   try {
-    return await fs.readFile(path.join(dir, filename), 'utf-8');
+    return await fs.readFile(fullPath, 'utf-8');
   } catch {
     return '';
   }
@@ -62,7 +66,10 @@ export async function readWorkspaceFile(flowId: string, filename: string): Promi
 
 export async function writeWorkspaceFile(flowId: string, filename: string, content: string): Promise<void> {
   const dir = await getWorkspaceDir(flowId);
-  const fullPath = path.join(dir, filename);
+  const fullPath = path.resolve(dir, filename);
+  if (!fullPath.startsWith(path.resolve(dir) + path.sep)) {
+    throw new Error('Invalid file path');
+  }
   await fs.mkdir(path.dirname(fullPath), { recursive: true });
   await fs.writeFile(fullPath, content, 'utf-8');
 }
@@ -90,6 +97,9 @@ export async function updateProgress(flowId: string, nodeName: string, outcome: 
 }
 
 export async function buildSessionContext(flowId: string, nodeId: string): Promise<string> {
+  if (!SAFE_ID_RE.test(nodeId)) {
+    throw new Error(`Invalid nodeId: ${nodeId}`);
+  }
   const [progress, featuresRaw, nodeMemory, sharedMemory] = await Promise.all([
     readWorkspaceFile(flowId, 'progress.md'),
     readWorkspaceFile(flowId, 'features.json'),
@@ -115,6 +125,15 @@ export async function buildSessionContext(flowId: string, nodeId: string): Promi
   parts.push('[End Workspace Context]');
 
   return parts.join('\n\n');
+}
+
+export async function removeWorkspace(flowId: string): Promise<void> {
+  const dir = await getWorkspaceDir(flowId);
+  try {
+    await fs.rm(dir, { recursive: true, force: true });
+  } catch {
+    // workspace may not exist — that's fine
+  }
 }
 
 export async function listFiles(flowId: string): Promise<WorkspaceFile[]> {

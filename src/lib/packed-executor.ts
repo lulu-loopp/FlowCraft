@@ -33,7 +33,7 @@ interface PackedExecOptions {
 }
 
 export type InternalNodeResult = { status: string; currentOutput: string }
-export type PackedExecResult = { output: string; handleOutputs: Record<string, string> }
+export type PackedExecResult = { output: string; handleOutputs: Record<string, string>; hasFailures: boolean }
 
 export async function executePackedNode(opts: PackedExecOptions): Promise<PackedExecResult> {
   const { node, input, inputImages, flowId, defaultProvider, addLog, onStep, onToken } = opts
@@ -42,7 +42,7 @@ export async function executePackedNode(opts: PackedExecOptions): Promise<Packed
   const inlineFlow = node.data?.inlineFlow as { nodes: Node[]; edges: Edge[] } | undefined
 
   // Independent copy uses inline flow; shared uses API
-  if (!packName && !inlineFlow) return { output: input, handleOutputs: {} }
+  if (!packName && !inlineFlow) return { output: input, handleOutputs: {}, hasFailures: false }
 
   // 1. Load internal flow (inline or from API)
   let internalNodes: Node[]
@@ -69,7 +69,7 @@ export async function executePackedNode(opts: PackedExecOptions): Promise<Packed
     packMemory = await readPackMemory(packName)
   }
 
-  if (internalNodes.length === 0) return { output: input, handleOutputs: {} }
+  if (internalNodes.length === 0) return { output: input, handleOutputs: {}, hasFailures: false }
 
   addLog({ nodeName: nodeLabel, nodeType: 'packed', type: 'system',
     content: `Executing sub-flow: ${internalNodes.length} nodes, ${internalEdges.length} edges` })
@@ -77,6 +77,7 @@ export async function executePackedNode(opts: PackedExecOptions): Promise<Packed
   const sorted = topologicalSort(internalNodes, internalEdges)
   const completedIds = new Set<string>()
   const skippedIds = new Set<string>()
+  const failedIds = new Set<string>()
   const nodeOutputs = new Map<string, string>()
   const completedNames: string[] = []
   const runningNames: string[] = []
@@ -176,6 +177,18 @@ export async function executePackedNode(opts: PackedExecOptions): Promise<Packed
         continue
       }
 
+      // If any upstream failed, propagate failure — do not execute this node
+      const upstreamIds = internalEdges.filter(e => e.target === nid).map(e => e.source)
+      if (upstreamIds.some(id => failedIds.has(id))) {
+        failedIds.add(nid)
+        remaining.delete(nid)
+        const iNode = nodeMap.get(nid)!
+        const iLabel = (iNode.data?.label as string) || iNode.type || '?'
+        addLog({ nodeName: `${nodeLabel} › ${iLabel}`, nodeType: iNode.type || 'unknown', type: 'system', content: 'Skipped due to upstream failure' })
+        trySchedule()
+        continue
+      }
+
       if (!areUpstreamsCompleteOrSkipped(nid, internalEdges, completedIds, skippedIds)) continue
 
       const iNode = nodeMap.get(nid)!
@@ -195,7 +208,7 @@ export async function executePackedNode(opts: PackedExecOptions): Promise<Packed
         })
         .catch(err => {
           addLog({ nodeName: `${nodeLabel} › ${iLabel}`, nodeType: iNode.type || 'unknown', type: 'system', content: `Error: ${err instanceof Error ? err.message : 'Unknown'}` })
-          completedIds.add(nid)
+          failedIds.add(nid)
           const idx = runningNames.indexOf(iLabel)
           if (idx >= 0) runningNames.splice(idx, 1)
         })
@@ -222,7 +235,7 @@ export async function executePackedNode(opts: PackedExecOptions): Promise<Packed
     const results: Record<string, InternalNodeResult> = {}
     for (const iNode of sorted) {
       results[iNode.id] = {
-        status: skippedIds.has(iNode.id) ? 'skipped' : completedIds.has(iNode.id) ? 'success' : 'waiting',
+        status: failedIds.has(iNode.id) ? 'error' : skippedIds.has(iNode.id) ? 'skipped' : completedIds.has(iNode.id) ? 'success' : 'waiting',
         currentOutput: nodeOutputs.get(iNode.id) || '',
       }
     }
@@ -245,7 +258,7 @@ export async function executePackedNode(opts: PackedExecOptions): Promise<Packed
     : nodeOutputs.get(sorted[sorted.length - 1]?.id || '') || input
 
   // 6. Write memories + increment pack run count (async, non-blocking)
-  const allCompleted = sorted.every(n => completedIds.has(n.id) || skippedIds.has(n.id))
+  const allCompleted = sorted.every(n => completedIds.has(n.id) || skippedIds.has(n.id)) && failedIds.size === 0
   writePackedMemories({
     packName,
     flowId,
@@ -270,5 +283,5 @@ export async function executePackedNode(opts: PackedExecOptions): Promise<Packed
       .catch(() => {})
   }
 
-  return { output: combined, handleOutputs }
+  return { output: combined, handleOutputs, hasFailures: failedIds.size > 0 }
 }

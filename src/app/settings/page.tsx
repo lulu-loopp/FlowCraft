@@ -2,10 +2,87 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle2, XCircle, Terminal } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import type { AppSettings } from '@/lib/settings-storage';
 import { Button } from '@/components/ui/button';
+
+type ToolCheckStatus = {
+  claudeInstalled: boolean; claudeVersion: string | null;
+  codexInstalled: boolean; codexVersion: string | null;
+} | null;
+
+function ToolStatusRow({ label, installed, version, installedText, notInstalledText }: {
+  label: string; installed: boolean; version: string | null;
+  installedText: string; notInstalledText: string;
+}) {
+  return (
+    <div className="flex items-center gap-4 px-5 py-4">
+      <div className="flex items-center gap-2 w-28 shrink-0">
+        <Terminal className="w-4 h-4 text-slate-500" />
+        <span className="text-sm font-medium text-slate-700">{label}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        {installed ? (
+          <>
+            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+            <span className="text-sm text-emerald-600">{installedText}</span>
+            {version && <span className="text-xs text-slate-400 font-mono ml-2">{version}</span>}
+          </>
+        ) : (
+          <>
+            <XCircle className="w-4 h-4 text-rose-400" />
+            <span className="text-sm text-rose-500">{notInstalledText}</span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ToolIntegrationSection() {
+  const { t } = useUIStore();
+  const [status, setStatus] = React.useState<ToolCheckStatus>(null);
+
+  React.useEffect(() => {
+    fetch('/api/tools/claude-code/check')
+      .then(r => r.json())
+      .then(d => setStatus(d))
+      .catch(() => setStatus({ claudeInstalled: false, claudeVersion: null, codexInstalled: false, codexVersion: null }));
+  }, []);
+
+  return (
+    <section>
+      <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
+        {t('settings.claudeCode')} / {t('settings.codex')}
+      </h2>
+      <div className="bg-white border border-slate-200 rounded-2xl divide-y divide-slate-100">
+        {status === null ? (
+          <div className="flex items-center justify-center px-5 py-4">
+            <div className="w-4 h-4 rounded-full border-2 border-teal-500 border-t-transparent animate-spin" />
+          </div>
+        ) : (
+          <>
+            <ToolStatusRow
+              label="Claude Code"
+              installed={status.claudeInstalled}
+              version={status.claudeVersion}
+              installedText={t('settings.claudeCodeInstalled')}
+              notInstalledText={t('settings.claudeCodeNotInstalled')}
+            />
+            <ToolStatusRow
+              label="Codex"
+              installed={status.codexInstalled}
+              version={status.codexVersion}
+              installedText={t('settings.codexInstalled')}
+              notInstalledText={t('settings.codexNotInstalled')}
+            />
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
 
 const PROVIDERS = ['anthropic', 'openai', 'deepseek'];
 const MODELS: Record<string, string[]> = {
@@ -156,6 +233,9 @@ export default function SettingsPage() {
             />
           </div>
         </section>
+
+        {/* Claude Code & Codex Integration */}
+        <ToolIntegrationSection />
 
         {/* Language */}
         <section>

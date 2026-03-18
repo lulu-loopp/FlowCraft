@@ -6,6 +6,8 @@ import { Settings, GitBranch } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { FlowCard } from '@/components/home/flow-card';
 import { NewFlowButton } from '@/components/home/new-flow-button';
+import { DemoSection } from '@/components/home/demo-section';
+import { TrashSection } from '@/components/home/trash-section';
 import type { FlowMeta } from '@/types/flow';
 
 export default function Home() {
@@ -89,6 +91,9 @@ export default function Home() {
           <NewFlowButton />
         </div>
 
+        {/* Demo section */}
+        <DemoSection />
+
         {/* Loading */}
         {loading && (
           <div className="flex justify-center py-20">
@@ -114,10 +119,13 @@ export default function Home() {
         {!loading && flows.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {flows.map((flow) => (
-              <FlowCard key={flow.id} flow={flow} onDelete={handleDelete} />
+              <FlowCard key={flow.id} flow={flow} onDelete={handleDelete} onRenamed={fetchFlows} />
             ))}
           </div>
         )}
+
+        {/* Recycle bin */}
+        {!loading && <TrashSection onRestored={fetchFlows} />}
       </main>
     </div>
   );

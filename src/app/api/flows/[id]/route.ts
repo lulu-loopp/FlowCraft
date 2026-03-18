@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { readFlow, writeFlow, deleteFlow, ensureDefaultFlow } from '@/lib/flow-storage';
+import { readFlow, writeFlow, deleteFlow, ensureDefaultFlow, renameFlow } from '@/lib/flow-storage';
 import { requireMutationAuth } from '@/lib/api-auth';
 
 interface Params {
@@ -31,6 +31,25 @@ export async function PUT(request: Request, { params }: Params) {
   } catch (err) {
     console.error('[flows/:id PUT]', err);
     return NextResponse.json({ error: 'Failed to save flow' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request, { params }: Params) {
+  const denied = await requireMutationAuth(request);
+  if (denied) return denied;
+
+  const { id } = await params;
+  try {
+    const { name } = await request.json();
+    if (!name || typeof name !== 'string') {
+      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+    }
+    const ok = await renameFlow(id, name.trim());
+    if (!ok) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error('[flows/:id PATCH]', err);
+    return NextResponse.json({ error: 'Failed to rename flow' }, { status: 500 });
   }
 }
 

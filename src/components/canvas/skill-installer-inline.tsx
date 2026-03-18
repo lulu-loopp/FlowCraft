@@ -114,7 +114,7 @@ export function SkillInstallerInline() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 text-xs text-teal-600 hover:text-teal-700 mt-1 transition-colors"
+        className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700 mt-1 transition-colors"
       >
         <Plus className="w-3.5 h-3.5" />
         {t('config.installSkillsInline')}

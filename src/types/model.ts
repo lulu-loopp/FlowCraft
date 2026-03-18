@@ -13,4 +13,5 @@ export interface ModelConfig {
   provider: ModelProvider
   model: string
   apiKey: string
+  temperature?: number  // 0.0 ~ 2.0, 默认 0.7
 }

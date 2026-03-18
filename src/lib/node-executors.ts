@@ -3,7 +3,7 @@ import type { InputFile } from '@/types/flow'
 import type { AgentStep } from '@/types/agent'
 import { buildFullSystemPrompt } from '@/lib/personality-injector'
 import { readPrivateMemory } from '@/lib/memory-updater'
-import type { PersonalityConfig } from '@/lib/personality-injector'
+
 
 export async function getWorkspaceContext(flowId: string, nodeId: string): Promise<string> {
   if (!flowId) return '';

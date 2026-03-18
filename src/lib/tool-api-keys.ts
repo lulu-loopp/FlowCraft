@@ -11,7 +11,6 @@ export async function readToolApiKeys(): Promise<ToolApiKeys> {
     tavily:
       (typeof settings.tavilyApiKey === 'string' && settings.tavilyApiKey.trim()) ||
       process.env.TAVILY_API_KEY ||
-      process.env.NEXT_PUBLIC_TAVILY_KEY ||
       '',
     brave:
       (typeof settings.braveApiKey === 'string' && settings.braveApiKey.trim()) ||

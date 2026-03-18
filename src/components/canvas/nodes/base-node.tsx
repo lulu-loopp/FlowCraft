@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { NodeColors, NodeType } from '@/styles/tokens';
-import { Bot, Wrench, Lightbulb, User, ArrowRightLeft, Inbox, GitBranch, PlayCircle, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Bot, Wrench, Lightbulb, User, ArrowRightLeft, Inbox, GitBranch, PlayCircle, CheckCircle2, AlertCircle, HelpCircle, BookmarkPlus, Layers, Package, Terminal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useFlowStore } from '@/store/flowStore';
 import { useUIStore } from '@/store/uiStore';
+import { NODE_HELP } from '@/lib/presets/help';
+import { NodeHelpModal } from './node-help-modal';
 
 export interface BaseNodeProps {
   id: string;
@@ -16,6 +18,11 @@ export interface BaseNodeProps {
   children?: React.ReactNode;
   onDoubleClick?: () => void;
   hideSourceHandle?: boolean;
+  isReference?: boolean;
+  onSaveAsAgent?: () => void;
+  personalityName?: string;
+  personalityRole?: string;
+  memoryCount?: number;
 }
 
 const ICONS = {
@@ -27,13 +34,23 @@ const ICONS = {
   control: GitBranch,
   system: PlayCircle,
   output: Inbox,
+  packed: Package,
+  aiCodingAgent: Terminal,
 };
 
-export function BaseNode({ id, type, label, description, status = 'idle', selected, children, onDoubleClick, hideSourceHandle }: BaseNodeProps) {
+// Map NodeType (used for colors) to the actual node type key used in help/registry
+const HELP_TYPE_MAP: Record<string, string> = {
+  control: 'condition', system: 'initializer',
+};
+
+export function BaseNode({ id, type, label, description, status = 'idle', selected, children, onDoubleClick, hideSourceHandle, isReference, onSaveAsAgent, personalityName, personalityRole, memoryCount }: BaseNodeProps) {
   const { removeNode, duplicateNode, toggleNodeLock, nodes } = useFlowStore();
   const { t } = useUIStore();
+  const [showHelp, setShowHelp] = useState(false);
   const theme = NodeColors[type] || NodeColors.agent;
   const Icon = ICONS[type] || Bot;
+  const helpType = HELP_TYPE_MAP[type] || type;
+  const hasHelp = !!NODE_HELP[helpType];
 
   const currentNode = nodes.find(n => n.id === id);
   const isLocked = currentNode ? currentNode.draggable === false : false;
@@ -45,7 +62,7 @@ export function BaseNode({ id, type, label, description, status = 'idle', select
 
   return (
     <div
-      className={`relative w-[260px] rounded-xl bg-white shadow-sm border-2 transition-all
+      className={`group relative w-[260px] rounded-xl bg-white shadow-sm border-2 transition-all
         ${selected ? theme.border : 'border-transparent'}
         ${isWaiting ? 'opacity-60' : ''}
         ${isLocked ? 'nopan' : ''}`}
@@ -85,6 +102,17 @@ export function BaseNode({ id, type, label, description, status = 'idle', select
                 </svg>
               )}
             </button>
+
+            {/* Save as Agent (agent type only) */}
+            {type === 'agent' && onSaveAsAgent && (
+              <button
+                className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 active:scale-90 rounded-md transition-all"
+                onClick={(e) => { e.stopPropagation(); onSaveAsAgent(); }}
+                title={t('saveAgent.saveAsAgent')}
+              >
+                <BookmarkPlus className="w-4 h-4" />
+              </button>
+            )}
 
             <div className="w-[1px] h-4 bg-slate-200 self-center mx-0.5" />
 
@@ -129,14 +157,39 @@ export function BaseNode({ id, type, label, description, status = 'idle', select
 
       {/* Header */}
       <div className={`px-4 py-3 border-b border-slate-100 flex items-center justify-between rounded-t-xl ${theme.bg}`}>
-        <div className="flex items-center space-x-3">
-          <div className={`p-1.5 rounded-md bg-white shadow-sm ${theme.text}`}>
+        <div className="flex items-center space-x-3 min-w-0 flex-1">
+          <div className={`p-1.5 rounded-md bg-white shadow-sm shrink-0 ${theme.text}`}>
             <Icon className="w-4 h-4" />
           </div>
-          <div className="font-semibold text-sm text-slate-800">{label}</div>
+          {personalityName ? (
+            <div className="relative group/name min-w-0 flex-1">
+              <div className="font-semibold text-sm text-slate-800 truncate">
+                {personalityName}{personalityRole ? ` \u00b7 ${personalityRole}` : ''}
+              </div>
+              {/* Tooltip */}
+              <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/name:block pointer-events-none">
+                <div className="bg-slate-800 text-white text-[10px] leading-relaxed rounded-lg px-3 py-2 shadow-lg whitespace-nowrap">
+                  <div className="font-medium">{personalityName}{personalityRole ? ` \u00b7 ${personalityRole}` : ''}</div>
+                  {typeof memoryCount === 'number' && <div className="text-slate-300 mt-0.5">{t('memory.tooltipCount').replace('{n}', String(memoryCount))}</div>}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="font-semibold text-sm text-slate-800 truncate">{label}</div>
+          )}
         </div>
 
-        <div className="flex items-center">
+        <div className="flex items-center gap-1">
+          {hasHelp && (
+            <button
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); setShowHelp(true); }}
+              className="w-5 h-5 rounded-full bg-white/60 hover:bg-white text-slate-300 hover:text-slate-500
+                flex items-center justify-center shrink-0 transition-all duration-200
+                opacity-0 group-hover:opacity-100"
+            >
+              <HelpCircle className="w-3 h-3" />
+            </button>
+          )}
           {isRunning && (
             <Badge variant="outline" className={`border-transparent ${theme.badge} px-2`}>
               <span className="thinking-dot mb-1">.</span>
@@ -146,6 +199,9 @@ export function BaseNode({ id, type, label, description, status = 'idle', select
           )}
           {isSuccess && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
           {isError   && <AlertCircle  className="w-4 h-4 text-rose-500 animate-pulse" />}
+          {isReference && (
+            <Layers className="w-3.5 h-3.5 text-indigo-400 ml-1" />
+          )}
           {isLocked  && (
             <svg className="w-3.5 h-3.5 text-amber-400 ml-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
@@ -159,6 +215,8 @@ export function BaseNode({ id, type, label, description, status = 'idle', select
         {description && <p className="text-xs text-slate-500 mb-2">{description}</p>}
         {children}
       </div>
+
+      {showHelp && <NodeHelpModal nodeType={helpType} onClose={() => setShowHelp(false)} />}
     </div>
   );
 }

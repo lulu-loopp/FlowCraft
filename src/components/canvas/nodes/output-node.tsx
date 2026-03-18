@@ -2,11 +2,14 @@
 import React from 'react'
 import { createPortal } from 'react-dom'
 import { NodeProps } from '@xyflow/react'
-import { Copy, Maximize2 } from 'lucide-react'
-import ReactMarkdown from 'react-markdown'
+import { Copy, Maximize2, Eye } from 'lucide-react'
+import { MarkdownRenderer } from '@/components/ui/markdown-renderer'
 import { BaseNode } from './base-node'
 import { OutputModal } from './output-modal'
+import { FilePreviewModal } from '@/components/ui/file-preview-modal'
+import { useFlowStore } from '@/store/flowStore'
 import { useUIStore } from '@/store/uiStore'
+import type { OutputNodeData } from '@/types/flow'
 
 // Inline toast via portal — avoids phantom rect from fixed inside transform
 function CopyToast({ show, message }: { show: boolean; message: string }) {
@@ -23,12 +26,18 @@ function CopyToast({ show, message }: { show: boolean; message: string }) {
 
 export function OutputNode({ id, data, selected }: NodeProps) {
   const { t } = useUIStore()
+  const flowId = useFlowStore(s => s.flowId)
   const [showModal, setShowModal] = React.useState(false)
   const [copied, setCopied] = React.useState(false)
+  const [previewDoc, setPreviewDoc] = React.useState<{ name: string; url: string } | null>(null)
 
-  const output = (data?.currentOutput as string) || ''
-  const status = data?.status as string
-  const label = (data?.label as string) || 'Output'
+  const d = data as OutputNodeData
+  const output = d.currentOutput || ''
+  const status = d.status
+  const label = d.label || 'Output'
+  const documents = d.documents || []
+  const documentUrl = d.documentUrl
+  const documentName = d.documentName
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -44,8 +53,7 @@ export function OutputNode({ id, data, selected }: NodeProps) {
         type="output"
         label={label}
         description={t('node.output.collectDescription')}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        status={status as any}
+        status={status}
         selected={selected}
         onDoubleClick={() => output && setShowModal(true)}
         hideSourceHandle
@@ -75,17 +83,52 @@ export function OutputNode({ id, data, selected }: NodeProps) {
         ) : (
           <div className="bg-slate-50 border border-slate-100 rounded-lg p-2 max-h-28 overflow-y-auto">
             <div className="prose-node text-slate-700">
-              <ReactMarkdown>{output.slice(0, 400)}</ReactMarkdown>
+              <MarkdownRenderer>{output.slice(0, 400)}</MarkdownRenderer>
               {output.length > 400 && (
                 <p className="text-slate-400 text-[10px] mt-1">{t('node.output.doubleClickView')}</p>
               )}
             </div>
           </div>
         )}
+
+        {/* Document preview links */}
+        {documents.length > 0 ? (
+          <div className="mt-2 space-y-1">
+            {documents.map((doc, i) => (
+              <button
+                key={i}
+                onClick={e => { e.stopPropagation(); setPreviewDoc(doc) }}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 transition-colors w-full"
+              >
+                <Eye className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{doc.name}</span>
+              </button>
+            ))}
+          </div>
+        ) : documentUrl ? (
+          <button
+            onClick={e => { e.stopPropagation(); setPreviewDoc({ url: documentUrl, name: documentName || 'document.md' }) }}
+            className="flex items-center gap-1.5 mt-2 px-2.5 py-1.5 text-xs font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 transition-colors w-full"
+          >
+            <Eye className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">{documentName || t('node.output.viewDocument')}</span>
+          </button>
+        ) : null}
       </BaseNode>
 
       {showModal && (
         <OutputModal isOpen={showModal} onClose={() => setShowModal(false)} title={label} content={output} nodeType="output" />
+      )}
+
+      {previewDoc && flowId && (
+        <FilePreviewModal
+          isOpen={!!previewDoc}
+          onClose={() => setPreviewDoc(null)}
+          title={previewDoc.name}
+          flowId={flowId}
+          filePath={`docs/${previewDoc.name}`}
+          editable
+        />
       )}
 
       <CopyToast show={copied} message={t('node.output.copySuccess')} />

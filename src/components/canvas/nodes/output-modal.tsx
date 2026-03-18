@@ -1,8 +1,9 @@
 'use client'
 import React from 'react'
 import { createPortal } from 'react-dom'
-import ReactMarkdown from 'react-markdown'
 import { X, Copy, Check } from 'lucide-react'
+import { MarkdownRenderer } from '@/components/ui/markdown-renderer'
+import { useUIStore } from '@/store/uiStore'
 
 interface OutputModalProps {
   isOpen: boolean
@@ -13,6 +14,7 @@ interface OutputModalProps {
 }
 
 export function OutputModal({ isOpen, onClose, title, content }: OutputModalProps) {
+  const { t } = useUIStore()
   const [copied, setCopied] = React.useState(false)
   const [mounted, setMounted] = React.useState(false)
 
@@ -56,8 +58,8 @@ export function OutputModal({ isOpen, onClose, title, content }: OutputModalProp
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600"
             >
               {copied
-                ? <><Check className="w-3.5 h-3.5" /> 已复制</>
-                : <><Copy className="w-3.5 h-3.5" /> 复制内容</>
+                ? <><Check className="w-3.5 h-3.5" /> {t('file.copied')}</>
+                : <><Copy className="w-3.5 h-3.5" /> {t('file.copy')}</>
               }
             </button>
             <button
@@ -72,7 +74,7 @@ export function OutputModal({ isOpen, onClose, title, content }: OutputModalProp
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
           <div className="prose prose-sm prose-slate max-w-none">
-            <ReactMarkdown>{content}</ReactMarkdown>
+            <MarkdownRenderer>{content}</MarkdownRenderer>
           </div>
         </div>
       </div>

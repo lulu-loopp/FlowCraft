@@ -18,6 +18,10 @@ export default function CanvasPage() {
   React.useEffect(() => {
     useFlowStore.getState().setFlowId(flowId);
     loadFlow();
+    return () => {
+      // Clean up transient state when leaving this flow
+      useFlowStore.getState().resetForNewFlow();
+    };
   }, [flowId, loadFlow]);
 
   return (

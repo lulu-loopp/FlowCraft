@@ -138,6 +138,29 @@ export async function writeFlow(
   return flow;
 }
 
+export async function renameFlow(id: string, newName: string): Promise<boolean> {
+  assertSafeId(id);
+  const filePath = path.join(FLOWS_DIR, `${id}.json`);
+  try {
+    const raw = await fs.readFile(filePath, 'utf-8');
+    const flow = JSON.parse(raw) as FlowData;
+    flow.name = newName;
+    flow.updatedAt = new Date().toISOString();
+    await fs.writeFile(filePath, JSON.stringify(flow, null, 2), 'utf-8');
+
+    const index = await readIndex();
+    const idx = index.findIndex(m => m.id === id);
+    if (idx >= 0) {
+      index[idx].name = newName;
+      index[idx].updatedAt = flow.updatedAt;
+      await writeIndex(index);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // ── Trash / Recycle Bin ──
 const TRASH_DIR = path.join(FLOWS_DIR, '.trash');
 const TRASH_INDEX = path.join(TRASH_DIR, 'index.json');
@@ -278,6 +301,22 @@ export async function permanentDeleteFlow(id: string): Promise<boolean> {
   await removeWorkspace(id);
   await cleanupRunFiles(id);
   return true;
+}
+
+export async function emptyTrash(): Promise<number> {
+  await ensureTrashDir();
+  const trashIndex = await readTrashIndex();
+  let count = 0;
+  for (const meta of trashIndex) {
+    try {
+      await fs.unlink(path.join(TRASH_DIR, `${meta.id}.json`));
+    } catch { /* already gone */ }
+    await removeWorkspace(meta.id);
+    await cleanupRunFiles(meta.id);
+    count++;
+  }
+  await writeTrashIndex([]);
+  return count;
 }
 
 export async function createFlow(name?: string): Promise<FlowData> {

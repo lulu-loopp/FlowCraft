@@ -12,6 +12,7 @@ export interface ConfigTheme {
   dropdownSelected: string;
   linkText: string;
   addCriteriaBtn: string;
+  accentColor: string;
 }
 
 export const NODE_CONFIG_THEMES: Record<string, ConfigTheme> = {
@@ -22,14 +23,16 @@ export const NODE_CONFIG_THEMES: Record<string, ConfigTheme> = {
     dropdownSelected: 'text-indigo-700 font-medium bg-indigo-50',
     linkText: 'text-indigo-600',
     addCriteriaBtn: 'text-indigo-700 border-indigo-100 hover:bg-indigo-50',
+    accentColor: '#6366f1',
   },
   tool: {
-    focusRing: 'focus:ring-emerald-500 focus:border-emerald-400',
-    chipActive: 'bg-emerald-600 text-white border-emerald-500 shadow-sm',
-    chipHover: 'hover:border-emerald-200 hover:bg-emerald-50/50',
-    dropdownSelected: 'text-emerald-700 font-medium bg-emerald-50',
-    linkText: 'text-emerald-600',
-    addCriteriaBtn: 'text-emerald-700 border-emerald-100 hover:bg-emerald-50',
+    focusRing: 'focus:ring-cyan-500 focus:border-cyan-400',
+    chipActive: 'bg-cyan-600 text-white border-cyan-500 shadow-sm',
+    chipHover: 'hover:border-cyan-200 hover:bg-cyan-50/50',
+    dropdownSelected: 'text-cyan-700 font-medium bg-cyan-50',
+    linkText: 'text-cyan-600',
+    addCriteriaBtn: 'text-cyan-700 border-cyan-100 hover:bg-cyan-50',
+    accentColor: '#06b6d4',
   },
   skill: {
     focusRing: 'focus:ring-amber-500 focus:border-amber-400',
@@ -38,6 +41,7 @@ export const NODE_CONFIG_THEMES: Record<string, ConfigTheme> = {
     dropdownSelected: 'text-amber-700 font-medium bg-amber-50',
     linkText: 'text-amber-600',
     addCriteriaBtn: 'text-amber-700 border-amber-100 hover:bg-amber-50',
+    accentColor: '#f59e0b',
   },
   human: {
     focusRing: 'focus:ring-rose-500 focus:border-rose-400',
@@ -46,6 +50,7 @@ export const NODE_CONFIG_THEMES: Record<string, ConfigTheme> = {
     dropdownSelected: 'text-rose-700 font-medium bg-rose-50',
     linkText: 'text-rose-600',
     addCriteriaBtn: 'text-rose-700 border-rose-100 hover:bg-rose-50',
+    accentColor: '#f43f5e',
   },
   io: {
     focusRing: 'focus:ring-sky-500 focus:border-sky-400',
@@ -54,6 +59,7 @@ export const NODE_CONFIG_THEMES: Record<string, ConfigTheme> = {
     dropdownSelected: 'text-sky-700 font-medium bg-sky-50',
     linkText: 'text-sky-600',
     addCriteriaBtn: 'text-sky-700 border-sky-100 hover:bg-sky-50',
+    accentColor: '#0ea5e9',
   },
   condition: {
     focusRing: 'focus:ring-slate-500 focus:border-slate-400',
@@ -62,6 +68,7 @@ export const NODE_CONFIG_THEMES: Record<string, ConfigTheme> = {
     dropdownSelected: 'text-slate-700 font-medium bg-slate-100',
     linkText: 'text-slate-600',
     addCriteriaBtn: 'text-slate-700 border-slate-200 hover:bg-slate-50',
+    accentColor: '#64748b',
   },
   initializer: {
     focusRing: 'focus:ring-violet-500 focus:border-violet-400',
@@ -70,6 +77,16 @@ export const NODE_CONFIG_THEMES: Record<string, ConfigTheme> = {
     dropdownSelected: 'text-violet-700 font-medium bg-violet-50',
     linkText: 'text-violet-600',
     addCriteriaBtn: 'text-violet-700 border-violet-100 hover:bg-violet-50',
+    accentColor: '#8b5cf6',
+  },
+  aiCodingAgent: {
+    focusRing: 'focus:ring-[#D97757] focus:border-[#D97757]',
+    chipActive: 'bg-[#D97757] text-white border-[#D97757] shadow-sm',
+    chipHover: 'hover:border-orange-200 hover:bg-orange-50/50',
+    dropdownSelected: 'text-orange-800 font-medium bg-orange-50',
+    linkText: 'text-[#D97757]',
+    addCriteriaBtn: 'text-orange-800 border-orange-100 hover:bg-orange-50',
+    accentColor: '#D97757',
   },
 };
 

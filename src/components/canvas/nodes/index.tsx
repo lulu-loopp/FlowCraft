@@ -4,6 +4,8 @@ import { GenericNode } from './generic-node';
 import { InputNode } from './input-node';
 import { OutputNode } from './output-node';
 import { ConditionNode } from './condition-node';
+import { PackedNode } from './packed-node';
+import { AiCodingAgentNode } from './ai-coding-agent-node';
 
 export const nodeTypes = {
   agent: AgentNode,
@@ -14,4 +16,6 @@ export const nodeTypes = {
   condition: ConditionNode,
   initializer: (props: NodeProps) => <GenericNode {...props} type="system" />,
   output: OutputNode,
+  packed: PackedNode,
+  aiCodingAgent: AiCodingAgentNode,
 };

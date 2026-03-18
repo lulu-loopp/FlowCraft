@@ -1,9 +1,85 @@
 import React from 'react';
 import { BaseEdge, EdgeProps, getBezierPath } from '@xyflow/react';
+import type { Node, Edge } from '@xyflow/react';
 import { useFlowStore } from '@/store/flowStore';
+import { isLoopEdge as checkLoopEdge } from '@/lib/flow-executor';
+
+/**
+ * BFS forward from `targetId` along edges to collect all node IDs
+ * in the loop body (up to and including `sourceId`).
+ */
+function collectLoopBodyIds(targetId: string, sourceId: string, edges: Edge[]): Set<string> {
+  const ids = new Set<string>()
+  const queue = [targetId]
+  while (queue.length > 0) {
+    const cur = queue.shift()!
+    if (ids.has(cur)) continue
+    ids.add(cur)
+    if (cur === sourceId) continue // don't traverse past the loop source
+    for (const e of edges) {
+      if (e.source === cur) queue.push(e.target)
+    }
+  }
+  return ids
+}
+
+/**
+ * Build a path for a loop back-edge that routes below the loop body nodes.
+ * Only considers nodes that belong to this loop, so parallel paths are unaffected.
+ * Path: source(right) → stub right → down → left (below) → up → stub left → target(left)
+ */
+function getLoopEdgePath(
+  sx: number, sy: number, tx: number, ty: number,
+  loopNodes: Node[],
+): [string, number, number] {
+  const gap = 40    // vertical gap below tallest node
+  const stub = 24   // horizontal stub length at handles
+  const r = 16      // corner radius
+
+  // Only consider nodes that are part of this loop body
+  let maxBottom = Math.max(sy, ty)
+  for (const n of loopNodes) {
+    const nh = (n.measured?.height ?? 200)
+    const nodeBottom = (n.position?.y ?? 0) + nh
+    if (nodeBottom > maxBottom) maxBottom = nodeBottom
+  }
+
+  const bottomY = maxBottom + gap
+  // Source exits to the right, then goes down
+  const rx = sx + stub  // right exit point
+  const lx = tx - stub  // left entry point
+
+  const path = [
+    `M ${sx},${sy}`,
+    // Horizontal stub right from source handle
+    `L ${rx - r},${sy}`,
+    // Turn down
+    `Q ${rx},${sy} ${rx},${sy + r}`,
+    // Vertical down
+    `L ${rx},${bottomY - r}`,
+    // Turn left
+    `Q ${rx},${bottomY} ${rx - r},${bottomY}`,
+    // Horizontal across bottom
+    `L ${lx + r},${bottomY}`,
+    // Turn up
+    `Q ${lx},${bottomY} ${lx},${bottomY - r}`,
+    // Vertical up
+    `L ${lx},${ty + r}`,
+    // Turn right toward target
+    `Q ${lx},${ty} ${lx + r},${ty}`,
+    // Horizontal stub into target handle
+    `L ${tx},${ty}`,
+  ].join(' ')
+
+  const labelX = (rx + lx) / 2
+  const labelY = bottomY
+  return [path, labelX, labelY]
+}
 
 export function CustomEdge({
   id,
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
@@ -15,14 +91,20 @@ export function CustomEdge({
   selected,
   data,
 }: EdgeProps) {
-  const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-  });
+  const edges = useFlowStore((s) => s.edges);
+  const nodes = useFlowStore((s) => s.nodes);
+
+  // Detect loop back-edge
+  const thisEdge = edges.find(e => e.id === id);
+  const isLoop = thisEdge ? checkLoopEdge(thisEdge, edges) : false;
+
+  const [edgePath, labelX, labelY] = React.useMemo(() => {
+    if (!isLoop) return getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
+    // Only consider nodes belonging to this loop body (target → source in forward direction)
+    const bodyIds = collectLoopBodyIds(target, source, edges);
+    const loopNodes = nodes.filter(n => bodyIds.has(n.id));
+    return getLoopEdgePath(sourceX, sourceY, targetX, targetY, loopNodes);
+  }, [isLoop, source, target, edges, nodes, sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition]);
 
   const onEdgeClick = (evt: React.MouseEvent) => {
     evt.stopPropagation();
@@ -35,9 +117,10 @@ export function CustomEdge({
   const isError = data?.status === 'error';
 
   let edgeColor = '#94a3b8';
-  if (isRunning) edgeColor = '#0d9488';
+  if (isLoop) edgeColor = '#f97316';
+  if (isRunning) edgeColor = isLoop ? '#f97316' : '#0d9488';
   if (isError) edgeColor = '#f43f5e';
-  if (selected) edgeColor = '#0d9488';
+  if (selected) edgeColor = isLoop ? '#ea580c' : '#0d9488';
 
   return (
     <>
@@ -50,8 +133,8 @@ export function CustomEdge({
           ...style,
           strokeWidth: isRunning || selected ? 3 : 2,
           stroke: edgeColor,
-          strokeDasharray: isRunning ? '6 4' : undefined,
-          filter: selected ? 'drop-shadow(0 0 6px rgba(13,148,136,0.5))' : undefined,
+          strokeDasharray: isLoop ? '8 5' : isRunning ? '6 4' : undefined,
+          filter: selected ? `drop-shadow(0 0 6px ${isLoop ? 'rgba(249,115,22,0.5)' : 'rgba(13,148,136,0.5)'})` : undefined,
           transition: 'stroke 0.3s, stroke-width 0.3s',
         }}
       />

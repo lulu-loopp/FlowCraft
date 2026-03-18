@@ -63,6 +63,7 @@ export async function runWithAnthropic(
       system: systemPrompt,
       tools: toAnthropicTools(tools),
       messages,
+      temperature: config.temperature ?? 0.7,
     })
 
     for await (const event of stream) {

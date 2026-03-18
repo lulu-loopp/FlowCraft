@@ -28,6 +28,36 @@ export interface AgentRegistry {
   agents: AgentEntry[]
 }
 
+// 个人 Agent 条目
+export interface IndividualEntry {
+  name: string
+  description: string
+  role: string
+  runCount: number
+  memoryCount: number
+  createdAt: number
+}
+
+// Agent 组合条目
+export interface PackEntry {
+  name: string
+  description: string
+  nodeCount: number
+  runCount: number
+  createdAt: number
+  version?: number
+}
+
+// agents/individuals/index.json 结构
+export interface IndividualRegistry {
+  individuals: IndividualEntry[]
+}
+
+// agents/packs/index.json 结构
+export interface PackRegistry {
+  packs: PackEntry[]
+}
+
 // scan 结果类型
 export interface ScannedItem {
   name: string

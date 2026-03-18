@@ -152,6 +152,12 @@ export async function executeNodeWork(params: ExecuteNodeWorkParams): Promise<Ex
         ))
       },
     })
+    if (packResult.hasFailures) {
+      const failedNodes = Object.entries(
+        (useFlowStore.getState().nodes.find(n => n.id === node.id)?.data?._internalResults || {}) as Record<string, { status: string }>
+      ).filter(([, r]) => r.status === 'error').map(([id]) => id)
+      throw new Error(`Pack internal failure (${failedNodes.length} node(s) failed)`)
+    }
     output = packResult.output
     if (Object.keys(packResult.handleOutputs).length > 0) {
       resultHandleOutputs = packResult.handleOutputs

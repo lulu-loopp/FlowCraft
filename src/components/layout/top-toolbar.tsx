@@ -10,6 +10,7 @@ import { useUIStore } from '@/store/uiStore';
 import { useFlowExecution } from '@/hooks/useFlowExecution';
 import { useFlowPersistence } from '@/hooks/useFlowPersistence';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
+import { useRunTimer } from '@/hooks/useRunTimer';
 import { flowToYaml } from '@/lib/flow-yaml';
 import type { FlowData } from '@/types/flow';
 
@@ -23,6 +24,7 @@ export function TopToolbar() {
   const { runFlow } = useFlowExecution();
   const { saveFlow, saveStatus } = useFlowPersistence(flowId);
   const { undo, redo } = useUndoRedo();
+  const elapsed = useRunTimer(isRunning);
   const router = useRouter();
 
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -113,7 +115,11 @@ export function TopToolbar() {
         <div className="flex items-center gap-3 min-w-0">
           {/* Home button */}
           <button
-            onClick={() => router.push('/')}
+            onClick={() => {
+              // Reset state before navigating home to prevent stale viewStack
+              useFlowStore.getState().resetForNewFlow();
+              router.push('/');
+            }}
             title={t('toolbar.home')}
             className="flex items-center justify-center w-7 h-7 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
           >
@@ -151,7 +157,7 @@ export function TopToolbar() {
         <div className="flex items-center">
           {isRunning && (
             <Badge variant="outline" className="animate-pulse border-teal-200 bg-teal-50 text-teal-700">
-              {t('toolbar.running')}…
+              {t('toolbar.running')}… {elapsed && <span className="ml-1 font-mono text-teal-600">{elapsed}</span>}
             </Badge>
           )}
         </div>

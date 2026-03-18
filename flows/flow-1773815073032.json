@@ -1,0 +1,144 @@
+{
+  "id": "flow-1773815073032",
+  "name": "Loop Test",
+  "nodes": [
+    {
+      "id": "input-1",
+      "type": "io",
+      "position": {
+        "x": 73.4894000515635,
+        "y": 136.31009768959896
+      },
+      "data": {
+        "label": "Input",
+        "inputText": "Generate a random number between 0 and 10",
+        "status": "success",
+        "logs": [],
+        "currentOutput": "",
+        "currentToken": ""
+      },
+      "measured": {
+        "width": 260,
+        "height": 221
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "agent-1",
+      "type": "agent",
+      "position": {
+        "x": 455.9287563021859,
+        "y": 195.58457187088007
+      },
+      "data": {
+        "label": "Number Generator",
+        "systemPrompt": "You are a random number generator. When asked to generate a random number, respond with ONLY the number itself, nothing else. No explanation, no code, just the number.",
+        "status": "success",
+        "logs": [
+          {
+            "id": "af9e4ad2-95d5-4066-8c02-acf157afc5b8",
+            "type": "thinking",
+            "content": "4",
+            "timestamp": 1773817813275
+          },
+          {
+            "id": "61b72274-f09f-48d1-800f-87148f34ce8e",
+            "type": "done",
+            "content": "4",
+            "timestamp": 1773817813275
+          }
+        ],
+        "currentOutput": "4",
+        "currentToken": "",
+        "provider": "openai",
+        "model": "gpt-4o"
+      },
+      "measured": {
+        "width": 260,
+        "height": 202
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "cond-1",
+      "type": "condition",
+      "position": {
+        "x": 786.7952344093328,
+        "y": 157.31752808517388
+      },
+      "data": {
+        "label": "Quality Check",
+        "conditionMode": "natural",
+        "conditionValue": "The number is greater than or equal to 8",
+        "maxLoopIterations": 3,
+        "status": "success",
+        "logs": [],
+        "currentOutput": "4",
+        "currentToken": "",
+        "conditionResult": "false",
+        "loopCount": 3,
+        "warningMessage": "Looped 3 times, limit reached"
+      },
+      "measured": {
+        "width": 320,
+        "height": 218
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "output-1",
+      "type": "output",
+      "position": {
+        "x": 1239.4490748737005,
+        "y": 233.8905545002403
+      },
+      "data": {
+        "label": "Output",
+        "status": "success",
+        "logs": [],
+        "currentOutput": "4",
+        "currentToken": ""
+      },
+      "measured": {
+        "width": 260,
+        "height": 180
+      },
+      "selected": true,
+      "dragging": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "input-1",
+      "target": "agent-1",
+      "type": "custom"
+    },
+    {
+      "id": "e2",
+      "source": "agent-1",
+      "target": "cond-1",
+      "type": "custom"
+    },
+    {
+      "id": "e3",
+      "source": "cond-1",
+      "sourceHandle": "true-handle",
+      "target": "output-1",
+      "type": "custom"
+    },
+    {
+      "id": "e4",
+      "source": "cond-1",
+      "sourceHandle": "false-handle",
+      "target": "agent-1",
+      "type": "custom"
+    }
+  ],
+  "createdAt": "2026-03-18T14:01:21.996Z",
+  "updatedAt": "2026-03-18T14:43:20.581Z"
+}Z"
+}

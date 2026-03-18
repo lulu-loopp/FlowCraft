@@ -52,6 +52,14 @@ export function setConditionResult(nodeId: string, result: boolean) {
   patchNodeData(nodeId, { conditionResult: result ? 'true' : 'false' });
 }
 
+export function setNodeWarning(nodeId: string, message: string) {
+  patchNodeData(nodeId, { status: 'warning', warningMessage: message });
+}
+
+export function setLoopCount(nodeId: string, count: number) {
+  patchNodeData(nodeId, { loopCount: count });
+}
+
 export function appendAgentStep(nodeId: string, step: AgentStep) {
   const store = useFlowStore.getState();
   store.setNodes(

@@ -154,6 +154,9 @@ path.running-edge-path {
 .prose-node code { font-size: 10px; }
 .prose-node blockquote { margin: 0.2rem 0; padding-left: 0.5rem; }
 .prose-node a { color: #6366f1; }
+.prose-node table { width: 100%; border-collapse: collapse; margin: 0.3rem 0; font-size: 10px; }
+.prose-node th, .prose-node td { border: 1px solid #e2e8f0; padding: 0.2rem 0.4rem; text-align: left; }
+.prose-node th { background: #f8fafc; font-weight: 600; }
 
 /* ── ReactFlow overrides ────────────────────────────────────── */
 /* Allow text selection inside node textareas/inputs */
