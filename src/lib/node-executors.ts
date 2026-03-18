@@ -1,6 +1,9 @@
 import type { Node } from '@xyflow/react'
-import type { InputFile } from '@/components/canvas/nodes/input-node'
+import type { InputFile } from '@/types/flow'
 import type { AgentStep } from '@/types/agent'
+import { buildFullSystemPrompt } from '@/lib/personality-injector'
+import { readPrivateMemory } from '@/lib/memory-updater'
+import type { PersonalityConfig } from '@/lib/personality-injector'
 
 export async function getWorkspaceContext(flowId: string, nodeId: string): Promise<string> {
   if (!flowId) return '';
@@ -23,9 +26,21 @@ export async function executeAgentNode(
   onToken: (token: string) => void,
   defaultProvider = 'anthropic',
 ): Promise<string> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = node.data as any
-  const basePrompt = (data.systemPrompt as string) || 'You are a helpful assistant.'
+  const data = node.data as import('@/types/flow').AgentNodeData
+  const personality = data.personality
+  const individualName = data.individualName
+  const flowId = data._flowId || ''
+  const overridePrompt = data._overrideSystemPrompt
+
+  let basePrompt: string
+  if (overridePrompt) {
+    // Packed executor already built the full prompt with memory injection
+    basePrompt = overridePrompt
+  } else {
+    const privateMemory = await readPrivateMemory(flowId, node.id, individualName)
+    const rawPrompt = (data.systemPrompt as string) || 'You are a helpful assistant.'
+    basePrompt = buildFullSystemPrompt(personality, rawPrompt, privateMemory)
+  }
   const systemPrompt = workspaceContext
     ? `${workspaceContext}\n\n${basePrompt}`
     : basePrompt
@@ -42,6 +57,7 @@ export async function executeAgentNode(
           provider: data.provider || defaultProvider,
           model: data.model || 'claude-sonnet-4-6',
           apiKey: '',
+          temperature: (data.temperature as number) ?? 0.7,
         },
         maxIterations: (data.maxIterations as number) || 10,
       },
@@ -92,23 +108,25 @@ export async function executeConditionNode(
   input: string,
   defaultProvider = 'anthropic',
 ): Promise<boolean> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = node.data as any
+  const data = node.data as import('@/types/flow').ConditionNodeData
   const mode: 'natural' | 'expression' = data.conditionMode || 'natural'
   const condition: string = data.conditionValue || ''
 
   if (!condition.trim()) return true
 
+  // Use node's own provider/model, or pick a lightweight model for the default provider
+  const LIGHT_MODELS: Record<string, string> = {
+    anthropic: 'claude-haiku-4-5-20251001',
+    openai: 'gpt-4o-mini',
+    deepseek: 'deepseek-chat',
+  }
+  const provider = data.provider || defaultProvider
+  const model = data.model || LIGHT_MODELS[provider] || 'claude-haiku-4-5-20251001'
+
   const res = await fetch('/api/condition/eval', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      input,
-      condition,
-      mode,
-      provider: data.provider || defaultProvider,
-      model: data.model || 'claude-haiku-4-5-20251001',
-    }),
+    body: JSON.stringify({ input, condition, mode, provider, model }),
   })
 
   if (!res.ok) {

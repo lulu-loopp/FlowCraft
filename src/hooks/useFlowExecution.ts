@@ -2,54 +2,34 @@
 
 import { useCallback } from 'react'
 import { useFlowStore } from '@/store/flowStore'
-import { topologicalSort, areUpstreamsCompleteOrSkipped, markBranchSkipped } from '@/lib/flow-executor'
-import type { InputFile } from '@/components/canvas/nodes/input-node'
-import type { AgentStep } from '@/types/agent'
-import { getWorkspaceContext, executeAgentNode, executeConditionNode } from '@/lib/node-executors'
 import {
-  appendAgentStep,
-  appendAgentToken,
+  topologicalSort,
+  areUpstreamsCompleteOrSkipped,
+  markBranchSkipped,
+  detectCycles,
+  findLoopEdgeIds,
+  DEFAULT_MAX_LOOP_ITERATIONS,
+} from '@/lib/flow-executor'
+import type { InputFile } from '@/types/flow'
+import { distillExecutionMemory, appendMemory, incrementRunCount } from '@/lib/memory-updater'
+import type { PersonalityConfig } from '@/lib/personality-injector'
+import {
   getNodeLabel,
   resetExecutionNodes,
   setConditionResult,
   setInputNodeRunning,
   setInputNodeSuccess,
   setNodeError,
-  setNodeRunning,
   setNodeSkipped,
   setNodeSuccess,
+  setNodeWarning,
+  setLoopCount,
 } from '@/lib/flow-execution-state'
+import { executeNodeWork, buildInitialInput, getDefaultProvider } from '@/lib/flow-run-helpers'
 
 type InputNodeData = {
   inputFiles?: InputFile[]
   inputText?: string
-}
-
-async function getDefaultProvider(): Promise<string> {
-  try {
-    const settingsRes = await fetch('/api/settings')
-    if (!settingsRes.ok) return 'anthropic'
-    const settings = await settingsRes.json()
-    return settings.defaultProvider || 'anthropic'
-  } catch {
-    return 'anthropic'
-  }
-}
-
-function buildInitialInput(inputData: InputNodeData, userInput?: string): {
-  initialInput: string
-  inputImages: InputFile[]
-} {
-  const inputFiles = inputData.inputFiles || []
-  const inputImages = inputFiles.filter((f) => f.type === 'image')
-  const inputTextFiles = inputFiles.filter((f) => f.type === 'text')
-  const textFileContent = inputTextFiles
-    .map((f) => `\n\nFile content (${f.name}):\n${f.content}`)
-    .join('')
-  return {
-    initialInput: (inputData.inputText || userInput || 'Start') + textFileContent,
-    inputImages,
-  }
 }
 
 export function useFlowExecution() {
@@ -71,10 +51,14 @@ export function useFlowExecution() {
     clearLogs()
     setNodes(resetExecutionNodes(nodes))
 
+    const hasCycles = detectCycles(nodes, edges)
+    const loopEdgeIds = hasCycles ? findLoopEdgeIds(edges) : new Set<string>()
     const sortedNodes = topologicalSort(nodes, edges)
     const completedNodeIds = new Set<string>()
     const skippedNodeIds = new Set<string>()
     const nodeOutputs = new Map<string, string>()
+    const handleOutputs = new Map<string, Record<string, string>>()
+    const executionCount = new Map<string, number>()
     const inputNode = sortedNodes.find((n) => n.type === 'io')
     const inputData = (inputNode?.data || {}) as InputNodeData
     const { initialInput, inputImages } = buildInitialInput(inputData, userInput)
@@ -87,152 +71,231 @@ export function useFlowExecution() {
       nodeOutputs.set(inputNode.id, initialInput)
     }
 
-    let runStatus: 'success' | 'error' | 'stopped' = 'success'
+    const runState = { status: 'success' as 'success' | 'error' | 'stopped' }
 
-    try {
-      for (const node of sortedNodes) {
-        if (node.type === 'io') continue
-        if (!useFlowStore.getState().isRunning) {
-          runStatus = 'stopped'
-          break
-        }
-        if (skippedNodeIds.has(node.id)) {
-          setNodeSkipped(node.id)
-          completedNodeIds.add(node.id)
-          nodeOutputs.set(node.id, '')
-          continue
-        }
-        if (!areUpstreamsCompleteOrSkipped(node.id, edges, completedNodeIds, skippedNodeIds)) continue
+    // ── Execute a single non-IO node ──
+    async function executeNode(node: import('@xyflow/react').Node): Promise<void> {
+      const count = (executionCount.get(node.id) || 0) + 1
+      executionCount.set(node.id, count)
 
-        const upstreamOutputs = edges
-          .filter((e) => e.target === node.id)
-          .map((e) => nodeOutputs.get(e.source) || '')
-          .filter(Boolean)
-          .join('\n\n')
-        const nodeInput = upstreamOutputs || initialInput
+      const result = await executeNodeWork({
+        node, edges, inputNode, initialInput, inputImages,
+        nodeOutputs, handleOutputs, completedNodeIds, skippedNodeIds,
+        currentFlowId, defaultProvider, addLog, loopEdgeIds,
+      })
 
-        setNodeRunning(node.id)
-        addLog({
-          nodeName: getNodeLabel(node),
-          nodeType: node.type || 'unknown',
-          type: 'system',
-          content: 'Starting...',
-        })
+      // Track whether this condition triggers a loop reset (deferred to after completedNodeIds.add)
+      let loopResetTarget: string | null = null
 
-        try {
-          let output = nodeInput
+      // Condition node: handle branching & loops
+      if (node.type === 'condition') {
+        const condResult = result.conditionResult!
+        const inactiveHandle = condResult ? 'false-handle' : 'true-handle'
 
-          if (node.type === 'agent') {
-            const isDirectlyAfterInput = inputNode
-              ? edges.some((e) => e.source === inputNode.id && e.target === node.id)
-              : false
-            const wsContext = await getWorkspaceContext(currentFlowId, node.id)
-            if (wsContext) {
-              addLog({
-                nodeName: getNodeLabel(node, 'Agent'),
-                nodeType: 'agent',
-                type: 'system',
-                content: 'Workspace context loaded',
-              })
-            }
+        // Check if false-handle leads to a loop back-edge
+        const falseBackEdge = edges.find(
+          e => e.source === node.id && e.sourceHandle === 'false-handle' && loopEdgeIds.has(e.id)
+        )
+        const isLoopIteration = !!falseBackEdge && !condResult
 
-            output = await executeAgentNode(
-              node,
-              nodeInput,
-              isDirectlyAfterInput ? inputImages : [],
-              wsContext,
-              (step: AgentStep) => {
-                const logType =
-                  step.type === 'thinking'
-                    ? 'think'
-                    : step.type === 'tool_call'
-                      ? 'act'
-                      : step.type === 'tool_result'
-                        ? 'observe'
-                        : 'system'
+        if (isLoopIteration) {
+          // false → loop: re-enqueue loop path nodes
+          const maxLoop = (node.data?.maxLoopIterations as number) || DEFAULT_MAX_LOOP_ITERATIONS
+          setLoopCount(node.id, count)
 
-                addLog({
-                  nodeName: getNodeLabel(node, 'Agent'),
-                  nodeType: 'agent',
-                  type: logType,
-                  content: step.content,
-                })
-                appendAgentStep(node.id, step)
-              },
-              (token: string) => appendAgentToken(node.id, token),
-              defaultProvider,
-            )
-          } else if (node.type === 'condition') {
-            const result = await executeConditionNode(node, nodeInput, defaultProvider)
-            markBranchSkipped(node.id, result ? 'false-handle' : 'true-handle', edges, completedNodeIds, skippedNodeIds)
-            setConditionResult(node.id, result)
+          if (count >= maxLoop) {
+            // Exceeded limit: warning, force true path
+            const warnMsg = `Looped ${count} times, limit reached`
+            setNodeWarning(node.id, warnMsg)
             addLog({
               nodeName: getNodeLabel(node, 'Condition'),
-              nodeType: 'condition',
-              type: 'system',
-              content: `Evaluated to ${result ? 'true' : 'false'}`,
+              nodeType: 'condition', type: 'system',
+              content: `⚠ ${warnMsg}. Forcing true branch.`,
             })
-          } else if (node.type === 'human') {
-            addLog({
-              nodeName: getNodeLabel(node, 'Human'),
-              nodeType: 'human',
-              type: 'system',
-              content: 'Human input passthrough (not yet interactive).',
-            })
+            markBranchSkipped(node.id, 'false-handle', edges, completedNodeIds, skippedNodeIds, loopEdgeIds)
+          } else {
+            // Defer removeFromCompleted until after completedNodeIds.add(node.id)
+            loopResetTarget = falseBackEdge.target
           }
+        } else {
+          // Normal branching (no loop, or condition was true)
+          markBranchSkipped(node.id, inactiveHandle, edges, completedNodeIds, skippedNodeIds, loopEdgeIds)
+        }
 
-          nodeOutputs.set(node.id, output)
-          completedNodeIds.add(node.id)
-          setNodeSuccess(node.id, output)
-          addLog({
-            nodeName: getNodeLabel(node),
-            nodeType: node.type || 'unknown',
-            type: 'system',
-            content: 'Completed.',
-          })
+        setConditionResult(node.id, condResult)
+        addLog({
+          nodeName: getNodeLabel(node, 'Condition'),
+          nodeType: 'condition', type: 'system',
+          content: `Evaluated to ${condResult ? 'true' : 'false'}`,
+        })
+      }
 
-          if (node.type === 'agent' && currentFlowId) {
-            const nodeName = getNodeLabel(node, 'Agent')
-            const summary = output.slice(0, 200).replace(/\n/g, ' ')
-            fetch(`/api/workspace/${currentFlowId}/progress`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ nodeName, outcome: summary }),
-            }).catch(() => {})
+      nodeOutputs.set(node.id, result.output)
+      if (result.handleOutputs) {
+        handleOutputs.set(node.id, result.handleOutputs)
+      }
+      completedNodeIds.add(node.id)
+
+      // Now remove loop-path nodes (including this condition) so they re-execute
+      if (loopResetTarget) {
+        removeFromCompleted(loopResetTarget, node.id, completedNodeIds)
+        completedNodeIds.delete(node.id)
+      }
+
+      if (node.type !== 'condition' || !(node.data?.status === 'warning')) {
+        setNodeSuccess(node.id, result.output)
+      }
+      addLog({
+        nodeName: getNodeLabel(node),
+        nodeType: node.type || 'unknown', type: 'system',
+        content: 'Completed.',
+      })
+
+      // Post-execution: save docs, memory, etc.
+      await postExecuteNode(node, result.output, currentFlowId)
+    }
+
+    /** Remove loop-path nodes from completedNodeIds so they can re-execute */
+    function removeFromCompleted(startId: string, stopAtId: string, completed: Set<string>) {
+      const queue = [startId]
+      const visited = new Set<string>()
+      while (queue.length > 0) {
+        const nid = queue.shift()!
+        if (visited.has(nid)) continue
+        visited.add(nid)
+        completed.delete(nid)
+        skippedNodeIds.delete(nid)
+        if (nid === stopAtId) continue
+        for (const e of edges) {
+          if (e.source === nid && !loopEdgeIds.has(e.id)) {
+            queue.push(e.target)
           }
-        } catch (err) {
-          runStatus = 'error'
-          setNodeError(node.id)
-          addLog({
-            nodeName: getNodeLabel(node),
-            nodeType: node.type || 'unknown',
-            type: 'system',
-            content: `Error: ${err instanceof Error ? err.message : 'Unknown error'}`,
-          })
-          break
         }
       }
+    }
+
+    // ── Eager parallel execution ──
+    try {
+      const allNonIo = sortedNodes.filter(n => n.type !== 'io')
+      const remaining = new Set(allNonIo.map(n => n.id))
+      const nodeMap = new Map(sortedNodes.map(n => [n.id, n]))
+      const inFlight = new Map<string, Promise<void>>()
+
+      const nodeFinished = new Map<string, () => void>()
+      const nodeFinishedPromises = new Map<string, Promise<void>>()
+
+      function ensureFinishPromise(nid: string) {
+        if (!nodeFinishedPromises.has(nid)) {
+          const p = new Promise<void>(resolve => { nodeFinished.set(nid, resolve) })
+          nodeFinishedPromises.set(nid, p)
+        }
+      }
+      for (const nid of remaining) ensureFinishPromise(nid)
+
+      const trySchedule = () => {
+        if (runState.status === 'error') return
+        if (!useFlowStore.getState().isRunning) { runState.status = 'stopped'; return }
+
+        for (const nid of remaining) {
+          if (inFlight.has(nid)) continue
+
+          if (skippedNodeIds.has(nid)) {
+            remaining.delete(nid)
+            setNodeSkipped(nid)
+            completedNodeIds.add(nid)
+            nodeOutputs.set(nid, '')
+            const resolve = nodeFinished.get(nid)
+            if (resolve) resolve()
+            continue
+          }
+
+          if (!areUpstreamsCompleteOrSkipped(nid, edges, completedNodeIds, skippedNodeIds, loopEdgeIds)) continue
+
+          const node = nodeMap.get(nid)!
+          const task = executeNode(node)
+            .then(() => {
+              const resolve = nodeFinished.get(nid)
+              if (resolve) resolve()
+            })
+            .catch((err) => {
+              runState.status = 'error'
+              setNodeError(nid)
+              addLog({
+                nodeName: getNodeLabel(node),
+                nodeType: node.type || 'unknown', type: 'system',
+                content: `Error: ${err instanceof Error ? err.message : 'Unknown error'}`,
+              })
+              const resolve = nodeFinished.get(nid)
+              if (resolve) resolve()
+            })
+            .finally(() => {
+              inFlight.delete(nid)
+              remaining.delete(nid)
+
+              // If this node triggered a loop, re-add loop nodes to remaining
+              if (hasCycles) {
+                for (const nid2 of allNonIo.map(n => n.id)) {
+                  if (!completedNodeIds.has(nid2) && !skippedNodeIds.has(nid2) && !remaining.has(nid2)) {
+                    remaining.add(nid2)
+                    // Create new finish promise for re-enqueued node
+                    const p = new Promise<void>(resolve => { nodeFinished.set(nid2, resolve) })
+                    nodeFinishedPromises.set(nid2, p)
+                  }
+                }
+              }
+
+              trySchedule()
+            })
+
+          inFlight.set(nid, task)
+        }
+      }
+
+      trySchedule()
+
+      while (remaining.size > 0 || inFlight.size > 0) {
+        if (inFlight.size === 0) {
+          if (remaining.size > 0) {
+            const stuckNodes = [...remaining].join(', ')
+            console.error(`Execution stuck: unschedulable nodes: ${stuckNodes}`)
+            runState.status = 'error'
+            addLog({
+              nodeName: 'System', nodeType: 'system', type: 'system',
+              content: `Execution stuck: unschedulable nodes: ${stuckNodes}`,
+            })
+          }
+          break
+        }
+        await Promise.race(inFlight.values())
+        if (runState.status === 'error' || runState.status === 'stopped') break
+      }
     } finally {
-      const stoppedByUser = runStatus === 'success' && !useFlowStore.getState().isRunning
-      if (stoppedByUser) runStatus = 'stopped'
+      const stoppedByUser = runState.status === 'success' && !useFlowStore.getState().isRunning
+      if (stoppedByUser) runState.status = 'stopped'
 
       useFlowStore.getState().setIsRunning(false)
 
       const record = {
         id: `run-${Date.now()}`,
         startedAt,
-        status: runStatus,
+        status: runState.status,
         duration: Date.now() - startMs,
         nodeCount: sortedNodes.length,
       }
       addRunRecord(record)
 
-      const { flowId } = useFlowStore.getState()
+      const { flowId, nodes: finalNodes, edges: finalEdges, flowName } = useFlowStore.getState()
       if (flowId) {
         fetch(`/api/flows/${flowId}/runs`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(record),
+        }).catch(() => {})
+
+        fetch(`/api/flows/${flowId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: flowName || 'Untitled Flow', nodes: finalNodes, edges: finalEdges }),
         }).catch(() => {})
       }
     }
@@ -241,3 +304,86 @@ export function useFlowExecution() {
   return { runFlow }
 }
 
+// ── Post-execution side effects (docs, memory) ──
+async function postExecuteNode(
+  node: import('@xyflow/react').Node,
+  output: string,
+  currentFlowId: string,
+) {
+  const edges = useFlowStore.getState().edges
+
+  // Auto-save document
+  const DOC_KEYWORDS = /writ|文档|写手|report|报告|draft|撰写|手册|guide|manual/i
+  const agentLabel = getNodeLabel(node, 'Agent')
+  const agentPrompt = (node.data?.systemPrompt as string) || ''
+  const isDocNode = DOC_KEYWORDS.test(agentLabel) || DOC_KEYWORDS.test(agentPrompt)
+  if (node.type === 'agent' && currentFlowId && output.length > 500 && isDocNode) {
+    const filename = `${agentLabel.replace(/\s+/g, '-')}-${Date.now()}.md`
+    try {
+      const docRes = await fetch(`/api/workspace/${currentFlowId}/documents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename, content: output }),
+      })
+      if (docRes.ok) {
+        const docData = await docRes.json()
+        const store = useFlowStore.getState()
+        store.setNodes(
+          store.nodes.map(n =>
+            n.id === node.id ? { ...n, data: { ...n.data, documentUrl: docData.downloadUrl, documentName: docData.filename } } : n
+          )
+        )
+      }
+    } catch { /* non-critical */ }
+  }
+
+  // Output node: propagate docs
+  if (node.type === 'output') {
+    const upstreamIds = edges.filter(e => e.target === node.id).map(e => e.source)
+    const store = useFlowStore.getState()
+    const docs: { url: string; name: string }[] = []
+    for (const uid of upstreamIds) {
+      const upNode = store.nodes.find(n => n.id === uid)
+      if (upNode?.data?.documentUrl) {
+        docs.push({ url: upNode.data.documentUrl as string, name: upNode.data.documentName as string })
+      }
+    }
+    if (docs.length > 0) {
+      store.setNodes(
+        store.nodes.map(n =>
+          n.id === node.id ? { ...n, data: { ...n.data, documentUrl: docs[0].url, documentName: docs[0].name, documents: docs } } : n
+        )
+      )
+    }
+  }
+
+  // Agent memory
+  if (node.type === 'agent' && currentFlowId) {
+    const nodeName = getNodeLabel(node, 'Agent')
+    const summary = output.slice(0, 200).replace(/\n/g, ' ')
+    fetch(`/api/workspace/${currentFlowId}/progress`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nodeName, outcome: summary }),
+    }).catch(() => {})
+
+    const nodePersonality = node.data?.personality as PersonalityConfig | undefined
+    const individualName = node.data?.individualName as string | undefined
+    if (individualName) {
+      incrementRunCount(individualName).catch(() => {})
+    }
+    if (nodePersonality?.name) {
+      distillExecutionMemory(
+        output, (node.data?.systemPrompt as string) || ''
+      ).then(result => {
+        if (result) {
+          appendMemory(
+            { flowId: currentFlowId, nodeId: node.id, individualName },
+            result,
+            nodePersonality.name,
+          )
+        }
+      }).catch(() => {})
+    }
+  }
+}
