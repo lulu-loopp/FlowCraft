@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback } from 'react'
 import { NodeProps } from '@xyflow/react'
-import { Package, RefreshCw, CheckCircle2, AlertCircle, Unplug, HelpCircle, Layers } from 'lucide-react'
+import { Package, RefreshCw, CheckCircle2, AlertCircle, AlertTriangle, Unplug, HelpCircle, Layers } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { useFlowStore } from '@/store/flowStore'
 import { useUIStore } from '@/store/uiStore'
@@ -41,7 +41,9 @@ export function PackedNode({ id, data, selected }: NodeProps) {
   const runningInnerNodes = (data?.runningInnerNodes as string[]) || []
   const completedInnerNodes = (data?.completedInnerNodes as string[]) || []
   const innerProgress = data?.innerProgress as { completed: number; total: number } | undefined
+  const handleResults = data?.handleResults as Record<string, { status: string }> | undefined
   const isRunning = status === 'running'
+  const isPartial = status === 'partial'
   const isWaiting = status === 'waiting'
 
   const progressPercent = innerProgress && innerProgress.total > 0
@@ -93,7 +95,7 @@ export function PackedNode({ id, data, selected }: NodeProps) {
   return (
     <div ref={setAnchorEl}
       className={`group relative w-[280px] rounded-xl bg-white shadow-sm border-2 transition-all
-        ${selected ? 'border-violet-500' : 'border-transparent'} ${isWaiting ? 'opacity-60' : ''}`}
+        ${isPartial ? 'border-amber-400' : selected ? 'border-violet-500' : 'border-transparent'} ${isWaiting ? 'opacity-60' : ''}`}
       onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} onDoubleClick={handleDoubleClick}>
 
       {selected && (
@@ -144,6 +146,7 @@ export function PackedNode({ id, data, selected }: NodeProps) {
           </button>
           {isRunning && <Badge variant="outline" className="border-transparent bg-violet-100 text-violet-700 px-2"><span className="thinking-dot mb-1">.</span><span className="thinking-dot mb-1">.</span><span className="thinking-dot mb-1">.</span></Badge>}
           {status === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+          {isPartial && <AlertTriangle className="w-4 h-4 text-amber-500" />}
           {status === 'error' && <AlertCircle className="w-4 h-4 text-rose-500 animate-pulse" />}
           {hasUpdate && <button onClick={handleUpdatePack} className="p-0.5 rounded hover:bg-violet-100 transition-colors" title={t('packed.updateAvailable')}><RefreshCw className="w-3.5 h-3.5 text-amber-500" /></button>}
         </div>
@@ -151,8 +154,8 @@ export function PackedNode({ id, data, selected }: NodeProps) {
 
       {/* Body */}
       <div className="p-4 bg-white/80 rounded-b-xl backdrop-blur-sm">
-        {/* Idle / success / error */}
-        {!isRunning && (
+        {/* Idle / success / error / partial */}
+        {!isRunning && !isPartial && (
           <>
             {internalNodeNames.length > 0 && <p className="text-xs text-slate-500 mb-1.5 truncate">{t('packed.contains')}: {internalNodeNames.join(' \u00b7 ')}</p>}
             <div className="flex items-center gap-3 text-[11px] text-slate-400">
@@ -161,6 +164,20 @@ export function PackedNode({ id, data, selected }: NodeProps) {
             </div>
           </>
         )}
+
+        {/* Partial success summary */}
+        {isPartial && handleResults && (() => {
+          const entries = Object.values(handleResults)
+          const successCount = entries.filter(r => r.status === 'completed').length
+          const failCount = entries.filter(r => r.status === 'error' || r.status === 'skipped').length
+          return (
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-emerald-600 font-medium">{successCount} {t('packed.handleSuccess')}</span>
+              <span className="text-slate-300">/</span>
+              <span className="text-rose-500 font-medium">{failCount} {t('packed.handleFailed')}</span>
+            </div>
+          )
+        })()}
 
         {/* Running: show all nodes with individual status */}
         {isRunning && (

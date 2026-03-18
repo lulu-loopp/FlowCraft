@@ -20,11 +20,13 @@ import {
   setInputNodeRunning,
   setInputNodeSuccess,
   setNodeError,
+  setNodePartial,
   setNodeSkipped,
   setNodeSuccess,
   setNodeWarning,
   setLoopCount,
 } from '@/lib/flow-execution-state'
+import type { HandleResult } from '@/lib/packed-executor'
 import { executeNodeWork, buildInitialInput, getDefaultProvider } from '@/lib/flow-run-helpers'
 
 type InputNodeData = {
@@ -58,6 +60,7 @@ export function useFlowExecution() {
     const skippedNodeIds = new Set<string>()
     const nodeOutputs = new Map<string, string>()
     const handleOutputs = new Map<string, Record<string, string>>()
+    const handleResultsMap = new Map<string, Record<string, HandleResult>>()
     const executionCount = new Map<string, number>()
     const inputNode = sortedNodes.find((n) => n.type === 'io')
     const inputData = (inputNode?.data || {}) as InputNodeData
@@ -134,6 +137,9 @@ export function useFlowExecution() {
       if (result.handleOutputs) {
         handleOutputs.set(node.id, result.handleOutputs)
       }
+      if (result.handleResults) {
+        handleResultsMap.set(node.id, result.handleResults)
+      }
       completedNodeIds.add(node.id)
 
       // Now remove loop-path nodes (including this condition) so they re-execute
@@ -142,13 +148,23 @@ export function useFlowExecution() {
         completedNodeIds.delete(node.id)
       }
 
-      if (node.type !== 'condition' || !(node.data?.status === 'warning')) {
+      // Set node visual status based on pack overall status or normal success
+      if (result.packOverallStatus === 'partial') {
+        setNodePartial(node.id, result.output)
+      } else if (result.packOverallStatus === 'error') {
+        setNodeError(node.id)
+      } else if (node.type !== 'condition' || !(node.data?.status === 'warning')) {
         setNodeSuccess(node.id, result.output)
       }
+      const logMsg = result.packOverallStatus === 'partial'
+        ? 'Completed (partial success).'
+        : result.packOverallStatus === 'error'
+          ? 'Completed (all outputs failed).'
+          : 'Completed.'
       addLog({
         nodeName: getNodeLabel(node),
         nodeType: node.type || 'unknown', type: 'system',
-        content: 'Completed.',
+        content: logMsg,
       })
 
       // Post-execution: save docs, memory, etc.
@@ -210,6 +226,31 @@ export function useFlowExecution() {
           }
 
           if (!areUpstreamsCompleteOrSkipped(nid, edges, completedNodeIds, skippedNodeIds, loopEdgeIds)) continue
+
+          // Check per-handle status: if this node connects to a pack's failed handle, mark it error
+          const incomingEdges = edges.filter(e => e.target === nid && !loopEdgeIds.has(e.id))
+          const failedUpstreamHandle = incomingEdges.find(e => {
+            const hr = handleResultsMap.get(e.source)
+            if (!hr || !e.sourceHandle) return false
+            const handleStatus = hr[e.sourceHandle]?.status
+            return handleStatus === 'error' || handleStatus === 'skipped'
+          })
+          if (failedUpstreamHandle) {
+            remaining.delete(nid)
+            completedNodeIds.add(nid)
+            nodeOutputs.set(nid, '')
+            const node = nodeMap.get(nid)!
+            setNodeError(nid)
+            addLog({
+              nodeName: getNodeLabel(node),
+              nodeType: node.type || 'unknown', type: 'system',
+              content: 'Skipped: upstream Pack output failed',
+            })
+            const resolve = nodeFinished.get(nid)
+            if (resolve) resolve()
+            trySchedule()
+            continue
+          }
 
           const node = nodeMap.get(nid)!
           const task = executeNode(node)

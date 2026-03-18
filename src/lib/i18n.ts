@@ -351,6 +351,8 @@ export const translations = {
     'node.packed': 'Pack',
     'packed.executing': 'Executing',
     'packed.nodeProgress': '{completed}/{total} nodes',
+    'packed.handleSuccess': 'succeeded',
+    'packed.handleFailed': 'failed',
     // Shared edit dialog
     'packed.editSharedTitle': 'Editing shared definition',
     'packed.editSharedMsg': '{count} flow(s) use "{name}". Changes will affect all of them.',
@@ -799,6 +801,8 @@ export const translations = {
     'packed.disconnectedWarning': '以下节点没有内部连线：{names}',
     'packed.executing': '正在执行',
     'packed.nodeProgress': '{completed}/{total} 个节点',
+    'packed.handleSuccess': '成功',
+    'packed.handleFailed': '失败',
     'node.packed': '封装',
     // Shared edit dialog
     'packed.editSharedTitle': '正在修改共享定义',

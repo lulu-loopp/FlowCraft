@@ -33,7 +33,19 @@ interface PackedExecOptions {
 }
 
 export type InternalNodeResult = { status: string; currentOutput: string }
-export type PackedExecResult = { output: string; handleOutputs: Record<string, string>; hasFailures: boolean }
+
+export interface HandleResult {
+  status: 'completed' | 'error' | 'skipped'
+  output?: string
+  error?: string
+}
+
+export interface PackedExecResult {
+  output: string
+  handleOutputs: Record<string, string>
+  handleResults: Record<string, HandleResult>
+  overallStatus: 'completed' | 'partial' | 'error'
+}
 
 export async function executePackedNode(opts: PackedExecOptions): Promise<PackedExecResult> {
   const { node, input, inputImages, flowId, defaultProvider, addLog, onStep, onToken } = opts
@@ -42,7 +54,7 @@ export async function executePackedNode(opts: PackedExecOptions): Promise<Packed
   const inlineFlow = node.data?.inlineFlow as { nodes: Node[]; edges: Edge[] } | undefined
 
   // Independent copy uses inline flow; shared uses API
-  if (!packName && !inlineFlow) return { output: input, handleOutputs: {}, hasFailures: false }
+  if (!packName && !inlineFlow) return { output: input, handleOutputs: {}, handleResults: {}, overallStatus: 'completed' }
 
   // 1. Load internal flow (inline or from API)
   let internalNodes: Node[]
@@ -69,7 +81,7 @@ export async function executePackedNode(opts: PackedExecOptions): Promise<Packed
     packMemory = await readPackMemory(packName)
   }
 
-  if (internalNodes.length === 0) return { output: input, handleOutputs: {}, hasFailures: false }
+  if (internalNodes.length === 0) return { output: input, handleOutputs: {}, handleResults: {}, overallStatus: 'completed' }
 
   addLog({ nodeName: nodeLabel, nodeType: 'packed', type: 'system',
     content: `Executing sub-flow: ${internalNodes.length} nodes, ${internalEdges.length} edges` })
@@ -242,29 +254,53 @@ export async function executePackedNode(opts: PackedExecOptions): Promise<Packed
     opts.onInternalResults(node.id, results)
   }
 
-  // 4. Per-handle outputs
+  // 4. Per-handle outputs and per-handle status
   const handleConfig = (node.data?.handleConfig as Array<{ id: string; type: string; internalNodeId: string }>) || []
   const handleOutputs: Record<string, string> = {}
+  const handleResults: Record<string, HandleResult> = {}
   for (const h of handleConfig) {
     if (h.type === 'output') {
-      handleOutputs[h.id] = nodeOutputs.get(h.internalNodeId) || ''
+      const internalId = h.internalNodeId
+      if (failedIds.has(internalId)) {
+        handleResults[h.id] = { status: 'error', error: 'Internal node failed' }
+        handleOutputs[h.id] = ''
+      } else if (skippedIds.has(internalId)) {
+        handleResults[h.id] = { status: 'skipped' }
+        handleOutputs[h.id] = ''
+      } else {
+        handleResults[h.id] = { status: 'completed', output: nodeOutputs.get(internalId) || '' }
+        handleOutputs[h.id] = nodeOutputs.get(internalId) || ''
+      }
     }
   }
 
-  // 5. Combined output from internal output nodes
+  // 5. Determine overall status from handle results
+  const outputHandleResults = Object.values(handleResults)
+  let overallStatus: 'completed' | 'partial' | 'error'
+  if (outputHandleResults.length === 0) {
+    // No output handles defined — fall back to simple check
+    overallStatus = failedIds.size === 0 ? 'completed' : 'error'
+  } else {
+    const allCompleted = outputHandleResults.every(r => r.status === 'completed')
+    const allFailed = outputHandleResults.every(r => r.status === 'error' || r.status === 'skipped')
+    overallStatus = allCompleted ? 'completed' : allFailed ? 'error' : 'partial'
+  }
+
+  // 6. Combined output from internal output nodes (only successful ones)
   const outputNodes = sorted.filter(n => n.type === 'output')
   const combined = outputNodes.length > 0
-    ? outputNodes.map(n => nodeOutputs.get(n.id) || '').filter(Boolean).join('\n\n')
+    ? outputNodes
+        .filter(n => !failedIds.has(n.id))
+        .map(n => nodeOutputs.get(n.id) || '').filter(Boolean).join('\n\n')
     : nodeOutputs.get(sorted[sorted.length - 1]?.id || '') || input
 
-  // 6. Write memories + increment pack run count (async, non-blocking)
-  const allCompleted = sorted.every(n => completedIds.has(n.id) || skippedIds.has(n.id)) && failedIds.size === 0
+  // 7. Write memories + increment pack run count (async, non-blocking)
   writePackedMemories({
     packName,
     flowId,
     internalNodes: sorted,
     nodeOutputs,
-    success: allCompleted,
+    success: overallStatus === 'completed',
   }).catch(() => {})
 
   // Increment pack run count
@@ -283,5 +319,5 @@ export async function executePackedNode(opts: PackedExecOptions): Promise<Packed
       .catch(() => {})
   }
 
-  return { output: combined, handleOutputs, hasFailures: failedIds.size > 0 }
+  return { output: combined, handleOutputs, handleResults, overallStatus }
 }

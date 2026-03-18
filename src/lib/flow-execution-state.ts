@@ -20,7 +20,7 @@ export function getNodeLabel(node: Node, fallback = 'node'): string {
 export function resetExecutionNodes(nodes: Node[]): Node[] {
   return nodes.map((n) => ({
     ...n,
-    data: { ...n.data, status: 'waiting', logs: [], currentOutput: '', currentToken: '' },
+    data: { ...n.data, status: 'waiting', logs: [], currentOutput: '', currentToken: '', handleResults: undefined },
   }));
 }
 
@@ -50,6 +50,10 @@ export function setInputNodeSuccess(nodeId: string) {
 
 export function setConditionResult(nodeId: string, result: boolean) {
   patchNodeData(nodeId, { conditionResult: result ? 'true' : 'false' });
+}
+
+export function setNodePartial(nodeId: string, output: string) {
+  patchNodeData(nodeId, { status: 'partial', currentOutput: output, currentToken: '' });
 }
 
 export function setNodeWarning(nodeId: string, message: string) {

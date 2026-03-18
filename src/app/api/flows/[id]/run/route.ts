@@ -4,9 +4,12 @@ import { topologicalSort, areUpstreamsCompleteOrSkipped, markBranchSkipped, find
 import { resolveProviderApiKey } from '@/lib/resolve-api-key';
 import { requireMutationAuth } from '@/lib/api-auth';
 import { evaluateConditionExpression } from '@/lib/condition-expression';
+import type { HandleResult } from '@/lib/packed-executor';
 import type { Node, Edge } from '@xyflow/react';
-import fs from 'fs/promises';
+import fsPromises from 'fs/promises';
 import path from 'path';
+
+const PACKS_DIR = path.join(process.cwd(), 'agents', 'packs');
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -91,6 +94,184 @@ async function evaluateConditionServer(node: Node, input: string): Promise<boole
   return text.startsWith('true');
 }
 
+interface PackedServerResult {
+  output: string;
+  handleOutputs: Record<string, string>;
+  handleResults: Record<string, HandleResult>;
+  overallStatus: 'completed' | 'partial' | 'error';
+}
+
+async function runPackedNodeServer(
+  node: Node,
+  input: string,
+  logs: string[],
+): Promise<PackedServerResult> {
+  const data = getNodeData(node);
+  const packName = (data.packName as string) || '';
+  const nodeLabel = (data.label as string) || 'Pack';
+  const inlineFlow = data.inlineFlow as { nodes: Node[]; edges: Edge[] } | undefined;
+
+  if (!packName && !inlineFlow) {
+    return { output: input, handleOutputs: {}, handleResults: {}, overallStatus: 'completed' };
+  }
+
+  // Load internal flow
+  let internalNodes: Node[];
+  let internalEdges: Edge[];
+
+  if (inlineFlow) {
+    internalNodes = inlineFlow.nodes || [];
+    internalEdges = inlineFlow.edges || [];
+  } else {
+    const packDir = path.join(PACKS_DIR, packName);
+    const flowStr = await fsPromises.readFile(path.join(packDir, 'flow.json'), 'utf-8').catch(() => '');
+    if (!flowStr) throw new Error(`Failed to load pack "${packName}"`);
+    const packFlow = JSON.parse(flowStr) as { nodes: Node[]; edges: Edge[] };
+    internalNodes = packFlow.nodes || [];
+    internalEdges = packFlow.edges || [];
+  }
+
+  if (internalNodes.length === 0) {
+    return { output: input, handleOutputs: {}, handleResults: {}, overallStatus: 'completed' };
+  }
+
+  logs.push(`[packed] ${nodeLabel}: executing sub-flow (${internalNodes.length} nodes)`);
+
+  const sorted = topologicalSort(internalNodes, internalEdges);
+  const completedIds = new Set<string>();
+  const skippedIds = new Set<string>();
+  const failedIds = new Set<string>();
+  const nodeOutputs = new Map<string, string>();
+
+  // Sequential scheduler for internal nodes (server-side simplicity)
+  const remaining = [...sorted];
+  let stuckIterations = 0;
+  const maxStuckIterations = remaining.length * 2;
+
+  while (remaining.length > 0 && stuckIterations < maxStuckIterations) {
+    let madeProgress = false;
+
+    for (let i = 0; i < remaining.length; i++) {
+      const iNode = remaining[i];
+      const nid = iNode.id;
+
+      if (skippedIds.has(nid)) {
+        completedIds.add(nid);
+        nodeOutputs.set(nid, '');
+        remaining.splice(i, 1);
+        i--;
+        madeProgress = true;
+        continue;
+      }
+
+      // Propagate upstream failure
+      const upstreamIds = internalEdges.filter(e => e.target === nid).map(e => e.source);
+      if (upstreamIds.some(uid => failedIds.has(uid))) {
+        failedIds.add(nid);
+        remaining.splice(i, 1);
+        i--;
+        const iLabel = (getNodeData(iNode).label as string) || iNode.type || '?';
+        logs.push(`[packed] ${nodeLabel} › ${iLabel}: skipped (upstream failure)`);
+        madeProgress = true;
+        continue;
+      }
+
+      if (!areUpstreamsCompleteOrSkipped(nid, internalEdges, completedIds, skippedIds)) continue;
+
+      const iLabel = (getNodeData(iNode).label as string) || iNode.type || '?';
+      const upstreamOutput = internalEdges
+        .filter(e => e.target === nid)
+        .map(e => nodeOutputs.get(e.source) || '')
+        .filter(Boolean)
+        .join('\n\n');
+      const nodeInput = upstreamOutput || input;
+
+      try {
+        let output = nodeInput;
+
+        if (iNode.type === 'io') {
+          output = input;
+        } else if (iNode.type === 'agent') {
+          logs.push(`[packed] ${nodeLabel} › ${iLabel}: starting agent`);
+          output = await runAgentServer(iNode, nodeInput);
+          logs.push(`[packed] ${nodeLabel} › ${iLabel}: done`);
+        } else if (iNode.type === 'condition') {
+          const result = await evaluateConditionServer(iNode, nodeInput);
+          markBranchSkipped(nid, result ? 'false-handle' : 'true-handle', internalEdges, completedIds, skippedIds);
+          logs.push(`[packed] ${nodeLabel} › ${iLabel}: condition → ${result}`);
+          output = nodeInput;
+        } else if (iNode.type === 'output') {
+          output = nodeInput;
+          logs.push(`[packed] ${nodeLabel} › ${iLabel}: output collected`);
+        } else if (iNode.type === 'packed') {
+          // Nested pack
+          const nested = await runPackedNodeServer(iNode, nodeInput, logs);
+          output = nested.output;
+        } else {
+          output = nodeInput;
+        }
+
+        nodeOutputs.set(nid, output);
+        completedIds.add(nid);
+      } catch (err) {
+        failedIds.add(nid);
+        logs.push(`[packed] ${nodeLabel} › ${iLabel}: error — ${err instanceof Error ? err.message : 'Unknown'}`);
+      }
+
+      remaining.splice(i, 1);
+      i--;
+      madeProgress = true;
+    }
+
+    if (!madeProgress) stuckIterations++;
+    else stuckIterations = 0;
+  }
+
+  // Per-handle outputs and status
+  const handleConfig = (data.handleConfig as Array<{ id: string; type: string; internalNodeId: string }>) || [];
+  const handleOutputs: Record<string, string> = {};
+  const handleResults: Record<string, HandleResult> = {};
+  for (const h of handleConfig) {
+    if (h.type === 'output') {
+      const internalId = h.internalNodeId;
+      if (failedIds.has(internalId)) {
+        handleResults[h.id] = { status: 'error', error: 'Internal node failed' };
+        handleOutputs[h.id] = '';
+      } else if (skippedIds.has(internalId)) {
+        handleResults[h.id] = { status: 'skipped' };
+        handleOutputs[h.id] = '';
+      } else {
+        handleResults[h.id] = { status: 'completed', output: nodeOutputs.get(internalId) || '' };
+        handleOutputs[h.id] = nodeOutputs.get(internalId) || '';
+      }
+    }
+  }
+
+  // Determine overall status
+  const outputHandleResults = Object.values(handleResults);
+  let overallStatus: 'completed' | 'partial' | 'error';
+  if (outputHandleResults.length === 0) {
+    overallStatus = failedIds.size === 0 ? 'completed' : 'error';
+  } else {
+    const allCompleted = outputHandleResults.every(r => r.status === 'completed');
+    const allFailed = outputHandleResults.every(r => r.status === 'error' || r.status === 'skipped');
+    overallStatus = allCompleted ? 'completed' : allFailed ? 'error' : 'partial';
+  }
+
+  // Combined output from successful output nodes
+  const outputNodes = sorted.filter(n => n.type === 'output');
+  const combined = outputNodes.length > 0
+    ? outputNodes
+        .filter(n => !failedIds.has(n.id))
+        .map(n => nodeOutputs.get(n.id) || '').filter(Boolean).join('\n\n')
+    : nodeOutputs.get(sorted[sorted.length - 1]?.id || '') || input;
+
+  const statusLabel = overallStatus === 'partial' ? 'partial success' : overallStatus;
+  logs.push(`[packed] ${nodeLabel}: ${statusLabel}`);
+
+  return { output: combined, handleOutputs, handleResults, overallStatus };
+}
+
 // POST /api/flows/{id}/run -> start a run, returns runId
 export async function POST(req: Request, { params }: Params) {
   const denied = await requireMutationAuth(req);
@@ -120,7 +301,7 @@ export async function POST(req: Request, { params }: Params) {
   const runId = `run-${Date.now()}`;
   const runFile = path.join(FLOWS_DIR, `${id}-run-${runId}.json`);
 
-  await fs.writeFile(
+  await fsPromises.writeFile(
     runFile,
     JSON.stringify({
       runId,
@@ -141,6 +322,8 @@ export async function POST(req: Request, { params }: Params) {
     const completed = new Set<string>();
     const skipped = new Set<string>();
     const outputs = new Map<string, string>();
+    const handleOutputsMap = new Map<string, Record<string, string>>();
+    const handleResultsMap = new Map<string, Record<string, HandleResult>>();
     const logs: string[] = [];
     let finalOutput = '';
 
@@ -171,11 +354,33 @@ export async function POST(req: Request, { params }: Params) {
           }
           if (!areUpstreamsCompleteOrSkipped(node.id, edges, completed, skipped, loopEdgeIds)) continue;
 
-          // For loop back-edge targets: allow re-execution by removing from completed
-          // (condition nodes that loop will re-enter their body nodes)
+          // Check per-handle status: if this node connects to a pack's failed handle, mark it error
+          const incomingEdges = edges.filter(e => e.target === node.id && !loopEdgeIds.has(e.id));
+          const failedHandle = incomingEdges.find(e => {
+            const hr = handleResultsMap.get(e.source);
+            if (!hr || !e.sourceHandle) return false;
+            const hs = hr[e.sourceHandle]?.status;
+            return hs === 'error' || hs === 'skipped';
+          });
+          if (failedHandle) {
+            const label = (getNodeData(node).label as string | undefined) || node.id;
+            logs.push(`[${node.type}] ${label}: error (upstream Pack output failed)`);
+            completed.add(node.id);
+            outputs.set(node.id, '');
+            progress = true;
+            continue;
+          }
+
+          // Gather upstream outputs with per-handle routing
           const upstream = edges
-            .filter((e) => e.target === node.id)
-            .map((e) => outputs.get(e.source) || '')
+            .filter((e) => e.target === node.id && !loopEdgeIds.has(e.id))
+            .map((e) => {
+              const hOutputs = handleOutputsMap.get(e.source);
+              if (hOutputs && e.sourceHandle && hOutputs[e.sourceHandle] !== undefined) {
+                return hOutputs[e.sourceHandle];
+              }
+              return outputs.get(e.source) || '';
+            })
             .filter(Boolean)
             .join('\n\n');
           const nodeInput = upstream || inputText;
@@ -190,12 +395,10 @@ export async function POST(req: Request, { params }: Params) {
             logs.push(`[condition] -> ${result ? 'true' : 'false'}`);
 
             if (!result && loopEdgeIds.size > 0) {
-              // Condition is false — check if the false branch is a loop back-edge
               const falseBackEdge = edges.find(
                 (e) => e.source === node.id && e.sourceHandle === 'false-handle' && loopEdgeIds.has(e.id)
               );
               if (falseBackEdge) {
-                // Re-enable loop body nodes for re-execution
                 const loopBodyTargets = [falseBackEdge.target];
                 for (const tid of loopBodyTargets) {
                   completed.delete(tid);
@@ -212,6 +415,15 @@ export async function POST(req: Request, { params }: Params) {
 
             markBranchSkipped(node.id, result ? 'false-handle' : 'true-handle', edges, completed, skipped, loopEdgeIds);
             output = nodeInput;
+          } else if (node.type === 'packed') {
+            const packResult = await runPackedNodeServer(node, nodeInput, logs);
+            output = packResult.output;
+            if (Object.keys(packResult.handleOutputs).length > 0) {
+              handleOutputsMap.set(node.id, packResult.handleOutputs);
+            }
+            if (Object.keys(packResult.handleResults).length > 0) {
+              handleResultsMap.set(node.id, packResult.handleResults);
+            }
           } else {
             output = nodeInput;
           }
@@ -233,9 +445,9 @@ export async function POST(req: Request, { params }: Params) {
       }
 
       if (!finalOutput && outputs.size) finalOutput = [...outputs.values()].at(-1) || '';
-      await fs.writeFile(runFile, JSON.stringify({ runId, status: 'done', output: finalOutput, logs, error: null }), 'utf-8');
+      await fsPromises.writeFile(runFile, JSON.stringify({ runId, status: 'done', output: finalOutput, logs, error: null }), 'utf-8');
     } catch (err) {
-      await fs.writeFile(
+      await fsPromises.writeFile(
         runFile,
         JSON.stringify({
           runId,

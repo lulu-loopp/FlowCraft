@@ -64,6 +64,8 @@ interface ExecuteNodeResult {
   output: string
   conditionResult?: boolean
   handleOutputs?: Record<string, string>
+  handleResults?: Record<string, import('@/lib/packed-executor').HandleResult>
+  packOverallStatus?: 'completed' | 'partial' | 'error'
 }
 
 export async function executeNodeWork(params: ExecuteNodeWorkParams): Promise<ExecuteNodeResult> {
@@ -152,15 +154,23 @@ export async function executeNodeWork(params: ExecuteNodeWorkParams): Promise<Ex
         ))
       },
     })
-    if (packResult.hasFailures) {
-      const failedNodes = Object.entries(
-        (useFlowStore.getState().nodes.find(n => n.id === node.id)?.data?._internalResults || {}) as Record<string, { status: string }>
-      ).filter(([, r]) => r.status === 'error').map(([id]) => id)
-      throw new Error(`Pack internal failure (${failedNodes.length} node(s) failed)`)
+    // Store handleResults on the node data so the UI can render partial status
+    if (Object.keys(packResult.handleResults).length > 0) {
+      const store = useFlowStore.getState()
+      store.setNodes(store.nodes.map(n =>
+        n.id === node.id ? { ...n, data: { ...n.data, handleResults: packResult.handleResults } } : n
+      ))
     }
+
     output = packResult.output
     if (Object.keys(packResult.handleOutputs).length > 0) {
       resultHandleOutputs = packResult.handleOutputs
+    }
+    return {
+      output,
+      handleOutputs: resultHandleOutputs,
+      handleResults: packResult.handleResults,
+      packOverallStatus: packResult.overallStatus,
     }
   }
 
