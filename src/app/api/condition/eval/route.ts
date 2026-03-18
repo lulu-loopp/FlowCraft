@@ -1,16 +1,7 @@
 import { NextResponse } from 'next/server';
-import { readSettings } from '@/lib/settings-storage';
+import { resolveProviderApiKey } from '@/lib/resolve-api-key';
 import { requireMutationAuth } from '@/lib/api-auth';
 import { evaluateConditionExpression } from '@/lib/condition-expression';
-
-function getApiKey(provider: string, settings: Awaited<ReturnType<typeof readSettings>>): string {
-  switch (provider) {
-    case 'anthropic': return settings.anthropicApiKey || process.env.ANTHROPIC_API_KEY || '';
-    case 'openai':    return settings.openaiApiKey    || process.env.OPENAI_API_KEY    || '';
-    case 'deepseek':  return settings.deepseekApiKey  || process.env.DEEPSEEK_API_KEY  || '';
-    default:          return '';
-  }
-}
 
 async function evaluateNatural(
   input: string,
@@ -19,8 +10,19 @@ async function evaluateNatural(
   model: string,
   apiKey: string,
 ): Promise<boolean> {
-  const prompt =
-    `Context:\n${input}\n\nCondition: ${condition}\n\nAnswer with only the single word "true" or "false".`;
+  const prompt = [
+    'You are a precise condition evaluator.',
+    'Given the context below (output from an AI agent), determine if the condition is met.',
+    'IMPORTANT: Focus on the ACTUAL RESULT or VALUE, not surrounding explanation or code.',
+    'If the context contains code, narrative, or explanation alongside a result,',
+    'evaluate the condition against the final result/value only.',
+    '',
+    `Context:\n${input}`,
+    '',
+    `Condition to evaluate: ${condition}`,
+    '',
+    'Answer with ONLY the single word "true" or "false".',
+  ].join('\n');
 
   if (provider === 'anthropic') {
     const Anthropic = (await import('@anthropic-ai/sdk')).default;
@@ -65,8 +67,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ result: evaluateConditionExpression(input, condition) });
     }
 
-    const settings = await readSettings();
-    const apiKey = getApiKey(provider, settings);
+    const apiKey = await resolveProviderApiKey(provider);
     if (!apiKey) {
       return NextResponse.json({ error: `Missing API key for provider: ${provider}` }, { status: 400 });
     }

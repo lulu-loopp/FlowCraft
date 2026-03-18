@@ -4,6 +4,7 @@ import { createTools } from '@/lib/tools'
 import { createSkills } from '@/lib/skills'
 import { readSkillRegistry } from '@/lib/registry-manager'
 import { requireMutationAuth } from '@/lib/api-auth'
+import { resolveProviderApiKey } from '@/lib/resolve-api-key'
 import { readToolApiKeys } from '@/lib/tool-api-keys'
 import type { ToolName } from '@/lib/tools'
 import type { SkillName } from '@/lib/skills'
@@ -11,17 +12,6 @@ import type { AgentConfig, ChatMessage, StreamEvent } from '@/types/agent'
 
 function toSSE(event: StreamEvent): string {
   return `data: ${JSON.stringify(event)}\n\n`
-}
-
-async function getModelApiKey(provider: string): Promise<string> {
-  const { readSettings } = await import('@/lib/settings-storage')
-  const settings = await readSettings()
-  switch (provider) {
-    case 'anthropic': return settings.anthropicApiKey || process.env.ANTHROPIC_API_KEY || ''
-    case 'deepseek':  return settings.deepseekApiKey  || process.env.DEEPSEEK_API_KEY  || ''
-    case 'openai':    return settings.openaiApiKey    || process.env.OPENAI_API_KEY    || ''
-    default:          return ''
-  }
 }
 
 export async function POST(req: NextRequest) {
@@ -37,7 +27,7 @@ export async function POST(req: NextRequest) {
     summary?: string
   }
 
-  const apiKey = await getModelApiKey(body.config.model.provider)
+  const apiKey = await resolveProviderApiKey(body.config.model.provider)
 
   if (!apiKey) {
     return new Response(
