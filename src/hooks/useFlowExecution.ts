@@ -460,6 +460,9 @@ export function useFlowExecution() {
     const startLabel = (startNode?.data?.label as string) || startNodeId
     const cachedCount = preCompleted.size
     const runCount = nodesToRun.size
+
+    clearLogs()
+
     if (cachedCount > 0) {
       addLog({
         nodeName: 'System', nodeType: 'system', type: 'system',
@@ -477,8 +480,6 @@ export function useFlowExecution() {
         content: `⚠ Upstream node(s) without output (will receive empty input): ${missingUpstream.join(', ')}`,
       })
     }
-
-    clearLogs()
 
     // Selectively reset only nodes that will run; preserve others
     setNodes(freshNodes.map(n => {

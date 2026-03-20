@@ -436,10 +436,19 @@ export async function POST(req: Request, { params }: Params) {
                 (e) => e.source === node.id && e.sourceHandle === 'false-handle' && loopEdgeIds.has(e.id)
               );
               if (falseBackEdge) {
-                const loopBodyTargets = [falseBackEdge.target];
-                for (const tid of loopBodyTargets) {
+                // BFS from loop target to condition: reset all nodes on the loop path
+                const bfsQueue = [falseBackEdge.target];
+                const bfsVisited = new Set<string>();
+                while (bfsQueue.length > 0) {
+                  const tid = bfsQueue.shift()!;
+                  if (bfsVisited.has(tid)) continue;
+                  bfsVisited.add(tid);
                   completed.delete(tid);
                   skipped.delete(tid);
+                  if (tid === node.id) continue; // stop at the condition node
+                  for (const e of edges) {
+                    if (e.source === tid && !loopEdgeIds.has(e.id)) bfsQueue.push(e.target);
+                  }
                 }
                 output = nodeInput;
                 outputs.set(node.id, output);
