@@ -515,20 +515,6 @@ Input → 执行者(agent) → 质检员(agent) → Condition → Output (true) 
   return msg
 }
 
-async function loadEnabledSkills(enabledSkills: string[]): Promise<string> {
-  const contents = await Promise.all(
-    enabledSkills.map(async (name) => {
-      const skillPath = path.join(process.cwd(), 'skills', name, 'SKILL.md')
-      try {
-        return await fs.readFile(skillPath, 'utf-8')
-      } catch {
-        return ''
-      }
-    })
-  )
-  return contents.filter(Boolean).join('\n\n---\n\n')
-}
-
 async function resolveSystemPrompt(): Promise<string> {
   // SYSTEM_PROMPT already contains all core rules (structure, node types, layout, loop pattern).
   // Only load reference files (patterns, templates) for extra context — skip SKILL.md itself to avoid duplication.

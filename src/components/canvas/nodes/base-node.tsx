@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { NodeColors, NodeType } from '@/styles/tokens';
-import { Bot, Wrench, Lightbulb, User, ArrowRightLeft, Inbox, GitBranch, PlayCircle, CheckCircle2, AlertCircle, HelpCircle, BookmarkPlus, Layers, Package, Terminal } from 'lucide-react';
+import { Bot, Wrench, Lightbulb, User, ArrowRightLeft, Inbox, GitBranch, GitMerge, PlayCircle, CheckCircle2, AlertCircle, BookmarkPlus, Layers, Package, Terminal, Play, AlertTriangle, FastForward, Split } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useFlowStore } from '@/store/flowStore';
 import { useUIStore } from '@/store/uiStore';
@@ -20,6 +20,8 @@ export interface BaseNodeProps {
   hideSourceHandle?: boolean;
   isReference?: boolean;
   onSaveAsAgent?: () => void;
+  onRunFromHere?: () => void;
+  onRunSingleNode?: (opts?: { force?: boolean }) => Promise<{ needsWarning: boolean; missingLabels: string[] } | void>;
   personalityName?: string;
   personalityRole?: string;
   memoryCount?: number;
@@ -36,6 +38,8 @@ const ICONS = {
   output: Inbox,
   packed: Package,
   aiCodingAgent: Terminal,
+  merge: GitMerge,
+  dispatcher: Split,
 };
 
 // Map NodeType (used for colors) to the actual node type key used in help/registry
@@ -43,17 +47,32 @@ const HELP_TYPE_MAP: Record<string, string> = {
   control: 'condition', system: 'initializer',
 };
 
-export function BaseNode({ id, type, label, description, status = 'idle', selected, children, onDoubleClick, hideSourceHandle, isReference, onSaveAsAgent, personalityName, personalityRole, memoryCount }: BaseNodeProps) {
-  const { removeNode, duplicateNode, toggleNodeLock, nodes } = useFlowStore();
+export function BaseNode({ id, type, label, description, status = 'idle', selected, children, onDoubleClick, hideSourceHandle, isReference, onSaveAsAgent, onRunFromHere, onRunSingleNode, personalityName, personalityRole, memoryCount }: BaseNodeProps) {
+  const { removeNode, duplicateNode, toggleNodeLock, nodes, isRunning: isFlowRunning } = useFlowStore();
   const { t } = useUIStore();
   const [showHelp, setShowHelp] = useState(false);
+  const [upstreamWarning, setUpstreamWarning] = useState<{ missingLabels: string[] } | null>(null);
   const theme = NodeColors[type] || NodeColors.agent;
   const Icon = ICONS[type] || Bot;
   const helpType = HELP_TYPE_MAP[type] || type;
-  const hasHelp = !!NODE_HELP[helpType];
+  const handleRunSingle = async () => {
+    if (!onRunSingleNode) return;
+    const result = await onRunSingleNode();
+    if (result?.needsWarning) {
+      setUpstreamWarning({ missingLabels: result.missingLabels });
+    }
+  };
+
+  const handleRunSingleForce = async () => {
+    if (!onRunSingleNode) return;
+    setUpstreamWarning(null);
+    await onRunSingleNode({ force: true });
+  };
 
   const currentNode = nodes.find(n => n.id === id);
   const isLocked = currentNode ? currentNode.draggable === false : false;
+  const isSkeleton = !!(currentNode?.data as Record<string, unknown>)?._skeleton;
+  const isAssembleIn = !!(currentNode?.data as Record<string, unknown>)?._assembleIn;
 
   const isRunning = status === 'running';
   const isError   = status === 'error';
@@ -65,7 +84,8 @@ export function BaseNode({ id, type, label, description, status = 'idle', select
       className={`group relative w-[260px] rounded-xl bg-white shadow-sm border-2 transition-all
         ${selected ? theme.border : 'border-transparent'}
         ${isWaiting ? 'opacity-60' : ''}
-        ${isLocked ? 'nopan' : ''}`}
+        ${isLocked ? 'nopan' : ''}
+        ${isAssembleIn ? 'node-assemble-in' : ''}`}
       onDoubleClick={onDoubleClick}
     >
       {/* ── Inline toolbar (scales naturally with canvas) ── */}
@@ -114,6 +134,27 @@ export function BaseNode({ id, type, label, description, status = 'idle', select
               </button>
             )}
 
+            {/* Run single node */}
+            {onRunSingleNode && !isFlowRunning && !isRunning && (
+              <button
+                className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 active:scale-90 rounded-md transition-all"
+                onClick={(e) => { e.stopPropagation(); handleRunSingle(); }}
+                title={t('node.runSingle')}
+              >
+                <Play className="w-4 h-4" />
+              </button>
+            )}
+            {/* Continue run (from here to output) */}
+            {onRunFromHere && !isFlowRunning && !isRunning && (
+              <button
+                className="p-2 text-slate-500 hover:text-teal-600 hover:bg-teal-50 active:scale-90 rounded-md transition-all"
+                onClick={(e) => { e.stopPropagation(); onRunFromHere(); }}
+                title={t('node.runFromHere')}
+              >
+                <FastForward className="w-4 h-4" />
+              </button>
+            )}
+
             <div className="w-[1px] h-4 bg-slate-200 self-center mx-0.5" />
 
             {/* Delete */}
@@ -155,66 +196,140 @@ export function BaseNode({ id, type, label, description, status = 'idle', select
         />
       )}
 
-      {/* Header */}
-      <div className={`px-4 py-3 border-b border-slate-100 flex items-center justify-between rounded-t-xl ${theme.bg}`}>
-        <div className="flex items-center space-x-3 min-w-0 flex-1">
-          <div className={`p-1.5 rounded-md bg-white shadow-sm shrink-0 ${theme.text}`}>
-            <Icon className="w-4 h-4" />
+      {/* Skeleton overlay — shown when _skeleton is true */}
+      {isSkeleton && (
+        <div className="node-skeleton-layer" style={{ opacity: 1 }}>
+          <div className={`px-4 py-3 border-b border-slate-100 rounded-t-xl ${theme.bg}`}>
+            <div className="flex items-center space-x-3">
+              <div className="node-skeleton-bar w-[28px] h-[28px] rounded-md shrink-0" />
+              <div className="node-skeleton-bar h-[14px] rounded" style={{ width: '85%' }} />
+            </div>
           </div>
-          {personalityName ? (
-            <div className="relative group/name min-w-0 flex-1">
-              <div className="font-semibold text-sm text-slate-800 truncate">
-                {personalityName}{personalityRole ? ` \u00b7 ${personalityRole}` : ''}
-              </div>
-              {/* Tooltip */}
-              <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/name:block pointer-events-none">
-                <div className="bg-slate-800 text-white text-[10px] leading-relaxed rounded-lg px-3 py-2 shadow-lg whitespace-nowrap">
-                  <div className="font-medium">{personalityName}{personalityRole ? ` \u00b7 ${personalityRole}` : ''}</div>
-                  {typeof memoryCount === 'number' && <div className="text-slate-300 mt-0.5">{t('memory.tooltipCount').replace('{n}', String(memoryCount))}</div>}
+          <div className="p-4">
+            <div className="node-skeleton-bar h-[10px] mb-2 rounded" style={{ width: '90%' }} />
+            <div className="node-skeleton-bar h-[10px] mb-2 rounded" style={{ width: '65%' }} />
+            <div className="node-skeleton-bar h-[10px] rounded" style={{ width: '40%' }} />
+          </div>
+        </div>
+      )}
+
+      {/* Real content — hidden when skeleton, fades in when skeleton removed */}
+      <div className="node-content-layer" style={{ opacity: isSkeleton ? 0 : 1 }}>
+        {/* Header */}
+        <div className={`px-4 py-3 border-b border-slate-100 flex items-center justify-between rounded-t-xl ${theme.bg}`}>
+          <div className="flex items-center space-x-3 min-w-0 flex-1">
+            <div className={`p-1.5 rounded-md bg-white shadow-sm shrink-0 ${theme.text}`}>
+              <Icon className="w-4 h-4" />
+            </div>
+            {personalityName ? (
+              <div className="relative group/name min-w-0 flex-1">
+                <div className="font-semibold text-sm text-slate-800 truncate">
+                  {personalityName}{personalityRole ? ` \u00b7 ${personalityRole}` : ''}
+                </div>
+                {/* Tooltip */}
+                <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/name:block pointer-events-none">
+                  <div className="bg-slate-800 text-white text-[10px] leading-relaxed rounded-lg px-3 py-2 shadow-lg whitespace-nowrap">
+                    <div className="font-medium">{personalityName}{personalityRole ? ` \u00b7 ${personalityRole}` : ''}</div>
+                    {typeof memoryCount === 'number' && <div className="text-slate-300 mt-0.5">{t('memory.tooltipCount').replace('{n}', String(memoryCount))}</div>}
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="font-semibold text-sm text-slate-800 truncate">{label}</div>
-          )}
+            ) : (
+              <div className="font-semibold text-sm text-slate-800 truncate">{label}</div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1">
+            {isRunning && (
+              <Badge variant="outline" className={`border-transparent ${theme.badge} px-2`}>
+                <span className="thinking-dot mb-1">.</span>
+                <span className="thinking-dot mb-1">.</span>
+                <span className="thinking-dot mb-1">.</span>
+              </Badge>
+            )}
+            {isSuccess && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+            {isError   && <AlertCircle  className="w-4 h-4 text-rose-500 animate-pulse" />}
+            {isReference && (
+              <Layers className="w-3.5 h-3.5 text-indigo-400 ml-1" />
+            )}
+            {isLocked  && (
+              <svg className="w-3.5 h-3.5 text-amber-400 ml-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-1">
-          {hasHelp && (
+        {/* Body */}
+        <div className="p-4 bg-white/80 rounded-b-xl backdrop-blur-sm">
+          {description && (
+            <p className="text-xs text-slate-400 mb-2 leading-relaxed">{description}</p>
+          )}
+          {children}
+        </div>
+      </div>
+
+      {/* Hover play button (shown when not selected, not running) */}
+      {(onRunSingleNode || onRunFromHere) && !isFlowRunning && !isRunning && !selected && (
+        <div
+          className="absolute -bottom-3 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-1"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          {onRunSingleNode && (
             <button
-              onClick={(e) => { e.stopPropagation(); e.preventDefault(); setShowHelp(true); }}
-              className="w-5 h-5 rounded-full bg-white/60 hover:bg-white text-slate-300 hover:text-slate-500
-                flex items-center justify-center shrink-0 transition-all duration-200
-                opacity-0 group-hover:opacity-100"
+              className="p-1.5 bg-white rounded-full shadow-md border border-slate-200
+                text-slate-400 hover:text-emerald-600 hover:border-emerald-300
+                active:scale-90 transition-all"
+              onClick={(e) => { e.stopPropagation(); handleRunSingle(); }}
+              title={t('node.runSingle')}
             >
-              <HelpCircle className="w-3 h-3" />
+              <Play className="w-3 h-3" />
             </button>
           )}
-          {isRunning && (
-            <Badge variant="outline" className={`border-transparent ${theme.badge} px-2`}>
-              <span className="thinking-dot mb-1">.</span>
-              <span className="thinking-dot mb-1">.</span>
-              <span className="thinking-dot mb-1">.</span>
-            </Badge>
-          )}
-          {isSuccess && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
-          {isError   && <AlertCircle  className="w-4 h-4 text-rose-500 animate-pulse" />}
-          {isReference && (
-            <Layers className="w-3.5 h-3.5 text-indigo-400 ml-1" />
-          )}
-          {isLocked  && (
-            <svg className="w-3.5 h-3.5 text-amber-400 ml-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
+          {onRunFromHere && (
+            <button
+              className="p-1.5 bg-white rounded-full shadow-md border border-slate-200
+                text-slate-400 hover:text-teal-600 hover:border-teal-300
+                active:scale-90 transition-all"
+              onClick={(e) => { e.stopPropagation(); onRunFromHere(); }}
+              title={t('node.runFromHere')}
+            >
+              <FastForward className="w-3 h-3" />
+            </button>
           )}
         </div>
-      </div>
+      )}
 
-      {/* Body */}
-      <div className="p-4 bg-white/80 rounded-b-xl backdrop-blur-sm">
-        {description && <p className="text-xs text-slate-500 mb-2">{description}</p>}
-        {children}
-      </div>
+      {/* Upstream missing warning popup */}
+      {upstreamWarning && (
+        <div
+          className="absolute -bottom-[88px] left-1/2 -translate-x-1/2 z-50 w-[240px]"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <div className="bg-white rounded-lg shadow-xl border border-amber-200 p-3">
+            <div className="flex items-start gap-2 mb-2">
+              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                {t('node.upstreamMissing').replace('{nodes}', upstreamWarning.missingLabels.join(', '))}
+              </p>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                className="text-[11px] px-2 py-1 text-slate-500 hover:text-slate-700 rounded transition-colors"
+                onClick={() => setUpstreamWarning(null)}
+              >
+                {t('node.cancel')}
+              </button>
+              <button
+                className="text-[11px] px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded transition-colors"
+                onClick={handleRunSingleForce}
+              >
+                {t('node.runAnyway')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showHelp && <NodeHelpModal nodeType={helpType} onClose={() => setShowHelp(false)} />}
     </div>

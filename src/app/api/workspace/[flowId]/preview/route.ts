@@ -11,8 +11,6 @@ interface Params {
 
 /** Extensions that support rich preview */
 const RICH_PREVIEW = new Set(['.docx', '.xlsx'])
-/** Extensions that markitdown can handle as fallback */
-const MARKITDOWN_EXTS = new Set(['.pptx', '.xlsx', '.docx', '.pdf'])
 /** All previewable extensions */
 const CONVERTIBLE = new Set([...RICH_PREVIEW, '.pptx', '.pdf'])
 

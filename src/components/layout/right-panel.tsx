@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { FolderOpen, Clock, ChevronLeft, ChevronRight, FileText, RefreshCw } from 'lucide-react';
+import { FolderOpen, Clock, ChevronLeft, ChevronRight, FileText, RefreshCw, Download, Trash2 } from 'lucide-react';
 import { Tabs } from '../ui/tabs';
 import { useFlowStore } from '@/store/flowStore';
 import { useUIStore } from '@/store/uiStore';
@@ -23,7 +23,20 @@ function FilesPanel({ flowId }: { flowId: string }) {
   const [files, setFiles] = React.useState<WorkspaceFile[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [previewFile, setPreviewFile] = React.useState<WorkspaceFile | null>(null);
+  const [deleting, setDeleting] = React.useState<string | null>(null);
   const { t } = useUIStore();
+
+  const handleDelete = React.useCallback(async (file: WorkspaceFile) => {
+    if (!flowId) return;
+    setDeleting(file.relativePath);
+    try {
+      const res = await fetch(`/api/workspace/${flowId}/file?path=${encodeURIComponent(file.relativePath)}`, { method: 'DELETE' });
+      if (res.ok) {
+        setFiles(prev => prev.filter(f => f.relativePath !== file.relativePath));
+      }
+    } catch { /* ignore */ }
+    setDeleting(null);
+  }, [flowId]);
 
   const load = React.useCallback(async () => {
     if (!flowId) return;
@@ -74,19 +87,38 @@ function FilesPanel({ flowId }: { flowId: string }) {
             <RefreshCw className="w-3 h-3" />
           </button>
         </div>
-        {files.map(f => (
-          <button
-            key={f.relativePath}
-            onClick={() => setPreviewFile(f)}
-            className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-teal-50 group w-full text-left transition-colors cursor-pointer"
-          >
-            <FileText className="w-3.5 h-3.5 text-slate-400 group-hover:text-teal-500 shrink-0 transition-colors" />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-slate-700 group-hover:text-teal-700 truncate transition-colors">{f.relativePath}</p>
-              <p className="text-xs text-slate-400">{(f.size / 1024).toFixed(1)} KB</p>
+        {files.map(f => {
+          return (
+            <div key={f.relativePath} className="flex items-center gap-1 group">
+              <button
+                onClick={() => setPreviewFile(f)}
+                className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-teal-50 flex-1 min-w-0 text-left transition-colors cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5 text-slate-400 group-hover:text-teal-500 shrink-0 transition-colors" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-slate-700 group-hover:text-teal-700 truncate transition-colors">{f.relativePath}</p>
+                  <p className="text-xs text-slate-400">{(f.size / 1024).toFixed(1)} KB</p>
+                </div>
+              </button>
+              <a
+                href={`/api/workspace/${flowId}/file?path=${encodeURIComponent(f.relativePath)}&download=1`}
+                download={f.name}
+                className="p-1.5 text-slate-300 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors shrink-0 opacity-0 group-hover:opacity-100"
+                title={t('file.download')}
+              >
+                <Download className="w-3.5 h-3.5" />
+              </a>
+              <button
+                onClick={() => handleDelete(f)}
+                disabled={deleting === f.relativePath}
+                className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors shrink-0 opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                title={t('file.delete')}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
             </div>
-          </button>
-        ))}
+          )
+        })}
       </div>
       {previewFile && (
         <FilePreviewModal
@@ -99,6 +131,91 @@ function FilesPanel({ flowId }: { flowId: string }) {
         />
       )}
     </>
+  );
+}
+
+function OutputNodePanel({ node, flowId }: { node: import('@xyflow/react').Node; flowId: string }) {
+  const { t } = useUIStore();
+  const [previewFile, setPreviewFile] = React.useState<{ name: string; path: string } | null>(null);
+
+  const data = node.data as Record<string, unknown>;
+  const output = (data.currentOutput as string) || '';
+  const documents = (data.documents as { url: string; name: string }[]) || [];
+  const status = data.status as string | undefined;
+
+  return (
+    <div className="space-y-3">
+      {/* Status badge */}
+      {status && status !== 'idle' && (
+        <div className={`text-xs font-medium px-2.5 py-1.5 rounded-lg ${
+          status === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+            : status === 'error' ? 'bg-rose-50 text-rose-700 border border-rose-100'
+            : 'bg-slate-50 text-slate-600 border border-slate-100'
+        }`}>
+          {status === 'success' ? t('node.output.completed') : status === 'error' ? t('node.output.error') : t('node.output.waiting')}
+        </div>
+      )}
+
+      {/* Generated files */}
+      {documents.length > 0 && (
+        <div>
+          <p className="text-xs font-medium text-slate-500 mb-2">{t('panel.right.generatedFiles')}</p>
+          <div className="space-y-1">
+            {documents.map((doc, i) => (
+              <div key={i} className="flex items-center gap-1">
+                <button
+                  onClick={() => {
+                    let docPath = doc.name
+                    try { const u = new URL(doc.url, 'http://localhost'); docPath = u.searchParams.get('path') || doc.name } catch { /* ignore */ }
+                    setPreviewFile({ name: doc.name, path: docPath })
+                  }}
+                  className="flex items-center gap-2 px-2.5 py-2 text-xs font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 transition-colors flex-1 min-w-0"
+                >
+                  <FileText className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{doc.name}</span>
+                </button>
+                <a
+                  href={doc.url}
+                  download={doc.name}
+                  className="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors shrink-0"
+                  title="Download"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Text output preview */}
+      {output && (
+        <div>
+          <p className="text-xs font-medium text-slate-500 mb-2">{t('node.output.textOutput')}</p>
+          <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 max-h-60 overflow-y-auto">
+            <pre className="text-xs text-slate-700 whitespace-pre-wrap break-words leading-relaxed">{output.slice(0, 2000)}</pre>
+            {output.length > 2000 && (
+              <p className="text-[10px] text-slate-400 mt-2">{t('node.output.truncated')}</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!output && documents.length === 0 && (
+        <p className="text-sm text-slate-400 py-4 leading-relaxed">{t('node.output.waiting')}</p>
+      )}
+
+      {previewFile && flowId && (
+        <FilePreviewModal
+          isOpen={!!previewFile}
+          onClose={() => setPreviewFile(null)}
+          title={previewFile.name}
+          flowId={flowId}
+          filePath={previewFile.path}
+          editable
+        />
+      )}
+    </div>
   );
 }
 
@@ -201,7 +318,10 @@ export function RightPanel() {
               {selectedNode.type === 'condition' && (
                 <ConditionConfigPanel node={selectedNode} />
               )}
-              {selectedNode.type !== 'agent' && selectedNode.type !== 'aiCodingAgent' && selectedNode.type !== 'condition' && (
+              {selectedNode.type === 'output' && (
+                <OutputNodePanel node={selectedNode} flowId={flowId} />
+              )}
+              {selectedNode.type !== 'agent' && selectedNode.type !== 'aiCodingAgent' && selectedNode.type !== 'condition' && selectedNode.type !== 'output' && (
                 <p className="text-sm text-slate-400 py-4 leading-relaxed">
                   {t('panel.right.noConfig')}
                 </p>

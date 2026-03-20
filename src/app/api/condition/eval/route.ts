@@ -89,7 +89,15 @@ export async function POST(req: Request) {
     const input = stripThinkTags(rawInput).cleaned || rawInput;
 
     if (mode === 'expression') {
-      return NextResponse.json({ result: evaluateConditionExpression(input, condition) });
+      try {
+        return NextResponse.json({ result: evaluateConditionExpression(input, condition) });
+      } catch (exprErr) {
+        const msg = exprErr instanceof Error ? exprErr.message : 'Invalid expression';
+        return NextResponse.json(
+          { error: `Expression evaluation failed: ${msg}` },
+          { status: 400 },
+        );
+      }
     }
 
     const resolved = await resolveProviderWithFallback(provider, model);
