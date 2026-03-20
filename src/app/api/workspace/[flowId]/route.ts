@@ -9,6 +9,9 @@ interface Params {
 // GET ?nodeId=xxx  → session context for an agent node
 // GET (no nodeId)  → list workspace files
 export async function GET(req: Request, { params }: Params) {
+  const denied = await requireMutationAuth(req);
+  if (denied) return denied;
+
   const { flowId } = await params;
   const { searchParams } = new URL(req.url);
   const nodeId = searchParams.get('nodeId');

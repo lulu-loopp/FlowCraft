@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Wrench, Lightbulb, ChevronRight, ChevronDown } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import type { TranslationKey } from '@/lib/i18n';
@@ -24,9 +24,13 @@ export function AdvancedNodes({ search, onDragStart }: AdvancedNodesProps) {
     return localStorage.getItem(STORAGE_KEY) === 'true';
   });
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, String(open));
-  }, [open]);
+  const toggleOpen = useCallback(() => {
+    setOpen(o => {
+      const next = !o;
+      localStorage.setItem(STORAGE_KEY, String(next));
+      return next;
+    });
+  }, []);
 
   const filtered = ADVANCED_NODES.filter(n =>
     !search ||
@@ -41,16 +45,11 @@ export function AdvancedNodes({ search, onDragStart }: AdvancedNodesProps) {
     <div className="pt-1 border-t border-slate-100">
       <button
         className="w-full flex items-center justify-between px-1 py-2 hover:bg-slate-50 rounded-lg transition-colors"
-        onClick={() => setOpen(o => !o)}
+        onClick={toggleOpen}
       >
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-medium text-slate-400">
-            {t('panel.left.advanced' as TranslationKey)}
-          </span>
-          <span className="bg-slate-100 text-slate-500 text-[10px] px-1.5 py-0.5 rounded font-medium">
-            {t('panel.left.advanced' as TranslationKey)}
-          </span>
-        </div>
+        <span className="text-xs font-medium text-slate-400">
+          {t('panel.left.advanced' as TranslationKey)}
+        </span>
         {isOpen
           ? <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
           : <ChevronRight className="w-3.5 h-3.5 text-slate-400" />

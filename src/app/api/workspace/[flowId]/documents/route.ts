@@ -36,6 +36,9 @@ export async function POST(req: Request, { params }: Params) {
 
 // GET ?file=xxx — download a document
 export async function GET(req: Request, { params }: Params) {
+  const denied = await requireMutationAuth(req);
+  if (denied) return denied;
+
   const { flowId } = await params;
   const { searchParams } = new URL(req.url);
   const file = searchParams.get('file');

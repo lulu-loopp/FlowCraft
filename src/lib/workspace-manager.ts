@@ -54,7 +54,7 @@ export async function initWorkspace(flowId: string): Promise<void> {
 export async function readWorkspaceFile(flowId: string, filename: string): Promise<string> {
   const dir = await getWorkspaceDir(flowId);
   const fullPath = path.resolve(dir, filename);
-  if (!fullPath.startsWith(path.resolve(dir) + path.sep) && fullPath !== path.resolve(dir)) {
+  if (!fullPath.startsWith(path.resolve(dir) + path.sep)) {
     throw new Error('Invalid file path');
   }
   try {
@@ -96,20 +96,34 @@ export async function updateProgress(flowId: string, nodeName: string, outcome: 
   await fs.writeFile(progressFile, updated, 'utf-8');
 }
 
+/** Pattern matching internal/metadata files that should be hidden from the file listing */
+const INTERNAL_FILE_RE = /^(memory\/|runs\/|progress\.md$|features\.json$|shared\.md$|docs\/)/;
+
+/** Format a byte size into a human-readable string (e.g. "45.2 KB") */
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export async function buildSessionContext(flowId: string, nodeId: string): Promise<string> {
   if (!SAFE_ID_RE.test(nodeId)) {
     throw new Error(`Invalid nodeId: ${nodeId}`);
   }
-  const [progress, featuresRaw, nodeMemory, sharedMemory] = await Promise.all([
+  const [progress, featuresRaw, nodeMemory, sharedMemory, allFiles] = await Promise.all([
     readWorkspaceFile(flowId, 'progress.md'),
     readWorkspaceFile(flowId, 'features.json'),
     readWorkspaceFile(flowId, `memory/${nodeId}.md`),
     readWorkspaceFile(flowId, 'memory/shared.md'),
+    listFiles(flowId),
   ]);
 
-  if (!progress && !featuresRaw && !nodeMemory && !sharedMemory) return '';
+  const dir = await getWorkspaceDir(flowId);
+  // Ensure workspace directory exists
+  await fs.mkdir(dir, { recursive: true });
 
   const parts: string[] = ['[Workspace Context]'];
+  parts.push(`## Output Directory\nSave ALL generated files (documents, images, presentations, etc.) to:\n\`${dir}\`\nUse this absolute path in your code. Do NOT save files to the project root or temp directories.`);
   if (progress) parts.push(`## Progress\n${progress}`);
   if (featuresRaw) {
     try {
@@ -122,6 +136,16 @@ export async function buildSessionContext(flowId: string, nodeId: string): Promi
   }
   if (sharedMemory) parts.push(`## Shared Memory\n${sharedMemory}`);
   if (nodeMemory) parts.push(`## Your Private Memory\n${nodeMemory}`);
+
+  // Build workspace file listing (exclude internal/metadata files)
+  const userFiles = allFiles.filter(f => !INTERNAL_FILE_RE.test(f.relativePath));
+  if (userFiles.length > 0) {
+    const fileLines = userFiles.map(f => `- ${f.relativePath} (${formatFileSize(f.size)})`).join('\n');
+    parts.push(`## Workspace Files\nThe following files currently exist in the workspace:\n${fileLines}\n\nIf you need to verify document existence or content, check this list first.`);
+  } else {
+    parts.push(`## Workspace Files\nNo files in workspace yet.`);
+  }
+
   parts.push('[End Workspace Context]');
 
   return parts.join('\n\n');

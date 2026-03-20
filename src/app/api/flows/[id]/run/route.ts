@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { readFlow, FLOWS_DIR, assertSafeId } from '@/lib/flow-storage';
 import { topologicalSort, areUpstreamsCompleteOrSkipped, markBranchSkipped, findLoopEdgeIds, DEFAULT_MAX_LOOP_ITERATIONS } from '@/lib/flow-executor';
-import { resolveProviderApiKey } from '@/lib/resolve-api-key';
+import { resolveProviderWithFallback } from '@/lib/resolve-api-key';
 import { requireMutationAuth } from '@/lib/api-auth';
 import { evaluateConditionExpression } from '@/lib/condition-expression';
 import type { HandleResult } from '@/lib/packed-executor';
@@ -21,9 +21,13 @@ function getNodeData(node?: Node): Record<string, unknown> {
 
 async function runAgentServer(node: Node, input: string): Promise<string> {
   const data = getNodeData(node);
-  const provider = (data.provider as string | undefined) || 'anthropic';
-  const apiKey = await resolveProviderApiKey(provider);
-  if (!apiKey) throw new Error(`API key not configured for provider: ${provider}. Please set it in Settings.`);
+  const requestedProvider = (data.provider as string | undefined) || 'anthropic';
+  const requestedModel = (data.model as string | undefined) || 'claude-sonnet-4-6';
+  const resolved = await resolveProviderWithFallback(requestedProvider, requestedModel);
+  if (!resolved) throw new Error(`API key not configured for provider: ${requestedProvider}. Please set it in Settings.`);
+  const provider = resolved.provider;
+  const apiKey = resolved.apiKey;
+  const model = resolved.model;
 
   const temperature = (data.temperature as number) ?? 0.7;
 
@@ -31,7 +35,7 @@ async function runAgentServer(node: Node, input: string): Promise<string> {
     const Anthropic = (await import('@anthropic-ai/sdk')).default;
     const client = new Anthropic({ apiKey });
     const msg = await client.messages.create({
-      model: (data.model as string | undefined) || 'claude-sonnet-4-6',
+      model,
       max_tokens: 4096,
       system: (data.systemPrompt as string | undefined) || 'You are a helpful assistant.',
       messages: [{ role: 'user', content: input }],
@@ -40,11 +44,23 @@ async function runAgentServer(node: Node, input: string): Promise<string> {
     return (msg.content[0] as { text: string }).text || '';
   }
 
+  if (provider === 'google') {
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const genModel = genAI.getGenerativeModel({
+      model,
+      systemInstruction: (data.systemPrompt as string | undefined) || 'You are a helpful assistant.',
+      generationConfig: { temperature, maxOutputTokens: 4096 },
+    });
+    const result = await genModel.generateContent(input);
+    return result.response.text();
+  }
+
   const { default: OpenAI } = await import('openai');
   const baseURL = provider === 'deepseek' ? 'https://api.deepseek.com' : undefined;
   const client = new OpenAI({ apiKey, ...(baseURL ? { baseURL } : {}) });
   const resp = await client.chat.completions.create({
-    model: (data.model as string | undefined) || (provider === 'deepseek' ? 'deepseek-chat' : 'gpt-4o'),
+    model,
     messages: [
       { role: 'system', content: (data.systemPrompt as string | undefined) || 'You are a helpful assistant.' },
       { role: 'user', content: input },
@@ -62,9 +78,13 @@ async function evaluateConditionServer(node: Node, input: string): Promise<boole
 
   if (mode === 'expression') return evaluateConditionExpression(input, condition);
 
-  const provider = (data.provider as string | undefined) || 'anthropic';
-  const apiKey = await resolveProviderApiKey(provider);
-  if (!apiKey) throw new Error(`API key not configured for provider: ${provider}. Please set it in Settings.`);
+  const reqProvider = (data.provider as string | undefined) || 'anthropic';
+  const reqModel = (data.model as string | undefined) || 'claude-haiku-4-5';
+  const resolved = await resolveProviderWithFallback(reqProvider, reqModel);
+  if (!resolved) throw new Error(`API key not configured for provider: ${reqProvider}. Please set it in Settings.`);
+  const provider = resolved.provider;
+  const apiKey = resolved.apiKey;
+  const model = resolved.model;
   const prompt = `Context:\n${input}\n\nCondition: ${condition}\n\nAnswer only "true" or "false".`;
 
   const condTemp = (data.temperature as number) ?? 0.7;
@@ -73,7 +93,7 @@ async function evaluateConditionServer(node: Node, input: string): Promise<boole
     const Anthropic = (await import('@anthropic-ai/sdk')).default;
     const client = new Anthropic({ apiKey });
     const msg = await client.messages.create({
-      model: (data.model as string | undefined) || 'claude-haiku-4-5-20251001',
+      model,
       max_tokens: 10,
       messages: [{ role: 'user', content: prompt }],
       temperature: condTemp,
@@ -81,11 +101,22 @@ async function evaluateConditionServer(node: Node, input: string): Promise<boole
     return ((msg.content[0] as { text: string }).text || '').toLowerCase().trim().startsWith('true');
   }
 
+  if (provider === 'google') {
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const condModel = genAI.getGenerativeModel({
+      model,
+      generationConfig: { temperature: condTemp, maxOutputTokens: 10 },
+    });
+    const result = await condModel.generateContent(prompt);
+    return (result.response.text() || '').toLowerCase().trim().startsWith('true');
+  }
+
   const { default: OpenAI } = await import('openai');
   const baseURL = provider === 'deepseek' ? 'https://api.deepseek.com' : undefined;
   const client = new OpenAI({ apiKey, ...(baseURL ? { baseURL } : {}) });
   const resp = await client.chat.completions.create({
-    model: (data.model as string | undefined) || (provider === 'deepseek' ? 'deepseek-chat' : 'gpt-4o-mini'),
+    model,
     max_tokens: 10,
     messages: [{ role: 'user', content: prompt }],
     temperature: condTemp,
@@ -327,11 +358,17 @@ export async function POST(req: Request, { params }: Params) {
     const logs: string[] = [];
     let finalOutput = '';
 
-    const inputNode = sorted.find((n) => n.type === 'io');
-    const inputText = (getNodeData(inputNode).inputText as string | undefined) || input || 'Start';
-    if (inputNode) {
-      completed.add(inputNode.id);
-      outputs.set(inputNode.id, inputText);
+    // Process ALL io nodes — each is an independent entry point
+    const inputNodes = sorted.filter((n) => n.type === 'io');
+    let firstInputUsed = false;
+    for (const ioNode of inputNodes) {
+      const ioData = getNodeData(ioNode);
+      const ioText = (ioData.inputText as string | undefined) || '';
+      const applyUserInput = !firstInputUsed && (!ioText.trim() || inputNodes.length === 1);
+      const nodeInput = (applyUserInput ? (ioText || input) : ioText) || 'Start';
+      if (applyUserInput) firstInputUsed = true;
+      completed.add(ioNode.id);
+      outputs.set(ioNode.id, nodeInput);
     }
 
     try {
@@ -383,7 +420,7 @@ export async function POST(req: Request, { params }: Params) {
             })
             .filter(Boolean)
             .join('\n\n');
-          const nodeInput = upstream || inputText;
+          const nodeInput = upstream || input || 'Start';
           const label = (getNodeData(node).label as string | undefined) || node.id;
           logs.push(`[${node.type}] ${label}: starting`);
 

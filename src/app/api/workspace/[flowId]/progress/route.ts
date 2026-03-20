@@ -6,7 +6,10 @@ interface Params {
   params: Promise<{ flowId: string }>;
 }
 
-export async function GET(_req: Request, { params }: Params) {
+export async function GET(req: Request, { params }: Params) {
+  const denied = await requireMutationAuth(req);
+  if (denied) return denied;
+
   const { flowId } = await params;
   const content = await readWorkspaceFile(flowId, 'progress.md');
   return NextResponse.json({ content });

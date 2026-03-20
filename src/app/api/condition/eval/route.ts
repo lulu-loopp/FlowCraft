@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { resolveProviderApiKey } from '@/lib/resolve-api-key';
+import { resolveProviderWithFallback } from '@/lib/resolve-api-key';
 import { requireMutationAuth } from '@/lib/api-auth';
 import { evaluateConditionExpression } from '@/lib/condition-expression';
+import { stripThinkTags } from '@/lib/strip-think-tags';
 
 async function evaluateNatural(
   input: string,
@@ -10,6 +11,13 @@ async function evaluateNatural(
   model: string,
   apiKey: string,
 ): Promise<boolean> {
+  // Truncate context to the last ~2000 chars — conclusions are usually at the end.
+  // This reduces think-tag overhead for reasoning models.
+  const maxContextLen = 2000
+  const truncatedInput = input.length > maxContextLen
+    ? '...(earlier content omitted)\n\n' + input.slice(-maxContextLen)
+    : input
+
   const prompt = [
     'You are a precise condition evaluator.',
     'Given the context below (output from an AI agent), determine if the condition is met.',
@@ -17,7 +25,7 @@ async function evaluateNatural(
     'If the context contains code, narrative, or explanation alongside a result,',
     'evaluate the condition against the final result/value only.',
     '',
-    `Context:\n${input}`,
+    `Context:\n${truncatedInput}`,
     '',
     `Condition to evaluate: ${condition}`,
     '',
@@ -36,16 +44,31 @@ async function evaluateNatural(
     return text.startsWith('true');
   }
 
-  // OpenAI / DeepSeek
+  if (provider === 'google') {
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const gModel = genAI.getGenerativeModel({
+      model,
+      generationConfig: { maxOutputTokens: 10 },
+    });
+    const result = await gModel.generateContent(prompt);
+    return (result.response.text() || '').toLowerCase().trim().startsWith('true');
+  }
+
+  // OpenAI / DeepSeek / MiniMax
   const { default: OpenAI } = await import('openai');
-  const baseURL = provider === 'deepseek' ? 'https://api.deepseek.com' : undefined;
+  const baseURLMap: Record<string, string> = { deepseek: 'https://api.deepseek.com', minimax: 'https://api.minimaxi.com/v1' };
+  const baseURL = baseURLMap[provider] || undefined;
   const client = new OpenAI({ apiKey, ...(baseURL ? { baseURL } : {}) });
+  // No max_tokens limit — reasoning models (MiniMax, DeepSeek) produce <think> tags
+  // that consume budget, but stripThinkTags extracts just the true/false answer.
   const resp = await client.chat.completions.create({
     model,
-    max_tokens: 10,
     messages: [{ role: 'user', content: prompt }],
   });
-  const text = (resp.choices[0].message.content || '').toLowerCase().trim();
+  const raw = resp.choices[0].message.content || '';
+  const { cleaned } = stripThinkTags(raw);
+  const text = cleaned.toLowerCase().trim();
   return text.startsWith('true');
 }
 
@@ -61,18 +84,20 @@ export async function POST(req: Request) {
       provider?: string;
       model?: string;
     };
-    const { input, condition, mode, provider = 'anthropic', model = 'claude-haiku-4-5-20251001' } = body;
+    const { input: rawInput, condition, mode, provider = 'anthropic', model = 'claude-haiku-4-5' } = body;
+    // Safety net: strip <think> tags from upstream output before evaluation
+    const input = stripThinkTags(rawInput).cleaned || rawInput;
 
     if (mode === 'expression') {
       return NextResponse.json({ result: evaluateConditionExpression(input, condition) });
     }
 
-    const apiKey = await resolveProviderApiKey(provider);
-    if (!apiKey) {
+    const resolved = await resolveProviderWithFallback(provider, model);
+    if (!resolved) {
       return NextResponse.json({ error: `Missing API key for provider: ${provider}` }, { status: 400 });
     }
 
-    const result = await evaluateNatural(input, condition, provider, model, apiKey);
+    const result = await evaluateNatural(input, condition, resolved.provider, resolved.model, resolved.apiKey);
     return NextResponse.json({ result });
   } catch (err) {
     console.error('[condition/eval]', err);
