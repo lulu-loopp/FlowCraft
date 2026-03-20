@@ -305,7 +305,20 @@ src/
   任务一：Google API + 多模态标注
   任务二：图片生成 Tool
   任务三：YAML 导出/导入 + Schema 文档
-  任务四：AI 生成 Flow
+  任务四：AI 生成 Flow（基础版）✓ 已完成
+  任务五：AI 生成 Flow 增强版
+  任务六：模型列表统一（Settings 和 MODEL_OPTIONS 对齐）
+
+待处理（各任务完成后统一处理）：
+  Settings 页面的模型列表和 src/types/model.ts 的 MODEL_OPTIONS 不一致
+  需要统一。涉及文件：settings 页面 + src/types/model.ts
+
+Phase 3 待评估想法：
+  节点多 handle 类型设计（text handle + file handle）
+  Agent 节点有两个出口：一个输出文字，一个输出文件
+  下游 Agent 可以选择只接文字 handle 或同时接两个 handle
+  当前时机不对（波及执行引擎、边连接校验、Pack 端口映射）
+  Phase 3 做多 Agent 协作时一起考虑 text/file/structured-data 多 handle
 ```
 
 ---
@@ -390,4 +403,128 @@ Pack 节点数据结构中已有 inlineFlow 字段
 普通节点（单个 Agent）失败行为保持不变
 Pack 内部只有一条串行路径时，退化为"全有或全无"
 向后兼容：已有的 flow 文件不需要迁移
+```
+
+---
+
+## 任务五：AI 生成 Flow 增强版
+
+### 核心改进方向
+
+**1. 生成 AI 做成真正的 Agent**
+```
+现在（基础版）：
+  用户输入 → 一次 LLM 调用 → flow.json
+
+增强版：
+  用户输入
+    → Agent 理解需求（必要时反问澄清）
+    → Agent 搜索相关工作流案例（web_search）
+    → Agent 研究最佳实践
+    → Agent 多轮思考，设计 flow 结构
+    → Agent 详细配置每个节点参数
+    → 生成高质量 flow.json
+    → 用户可以要求修改，Agent 继续迭代
+```
+
+**2. 复杂度分级**
+```
+简单模式（快速，~30秒）：
+  直接生成，不搜索
+  节点少，配置基础
+  适合快速原型
+
+标准模式（1-2分钟）：
+  搜索参考案例
+  详细配置每个节点的 system prompt
+  适合大多数场景
+
+专业模式（3-5分钟）：
+  深度调研最佳实践
+  多轮优化迭代
+  完整配置（人格/工具/技能/验收标准）
+  适合生产级别的 flow
+```
+
+**3. 节点配置详细化**
+```
+现在生成的节点只有 label 和基础 systemPrompt
+增强版要生成：
+  完整的 systemPrompt（有深度，有背景，有约束）
+  合适的 tools 配置
+  maxIterations 根据任务复杂度推断
+  completionCriteria（验收标准）
+  合理的 provider/model 选择
+```
+
+**4. 迭代修改能力**
+```
+生成完成后用户可以继续对话：
+  "把研究员改成更激进的风格"
+  "再加一个质检节点"
+  "整个流程太复杂了，简化一下"
+Agent 理解修改意图，更新 flow，重新渲染画布
+```
+
+### 光球 UI 重做（CSS blur 方案）
+
+不使用 Three.js，改用 CSS blur + mix-blend-mode: screen，
+效果更接近 Siri，实现更简单，性能更好。
+
+**核心原理：**
+```
+五个彩色 div（blob）叠加在一个容器里
+容器整体 filter: blur(32px) + mix-blend-mode: screen
+blob 各自有不同速度和轨迹的 CSS animation
+颜色通过融合产生丰富的流动效果
+```
+
+**五个 blob 颜色：**
+```
+青色   #20d5fb（100px）
+品红   #ff2a7a（100px）
+紫色   #8b3cff（110px）
+深蓝   #0055ff（90px）
+绿色   #00ffb3（75px）
+```
+
+**三种状态（通过 CSS class 切换）：**
+```
+state-idle（等待）：
+  整体缩放 0.68，缓慢流动
+  blob 动画时长 4.5s - 7s
+  运动范围 translate ±25%
+
+state-thinking（思考中）：
+  整体缩放 0.88，快速翻腾
+  blob 动画时长 1.2s - 2.0s
+  运动范围 translate ±30%
+
+state-generating（生成中）：
+  整体缩放 1.0，极速 + 呼吸震动
+  blob 动画时长 0.65s - 1.1s
+  加 scale 1.0 → 1.1 呼吸动画，0.55s 循环
+  运动范围 translate ±28%（不要太大）
+```
+
+**状态和 API 调用同步：**
+```
+调用开始      → state-thinking
+LLM 开始返回  → state-generating
+渲染完成      → 光球淡出消失（opacity 0，transition 0.5s）
+```
+
+### Settings 配置
+
+Settings 页面新增 AI 生成 Flow 配置区域：
+```
+AI 生成 Flow
+─────────────────────────
+生成模型：
+  Provider [deepseek ▼]  Model [deepseek-chat ▼]
+  （默认 deepseek-chat，省费用）
+
+启用工具：
+  ☑ web_search（调研最佳实践）
+  ☑ url_fetch（读取参考页面）
 ```

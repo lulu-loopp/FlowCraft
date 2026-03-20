@@ -1,14 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { ModelConfig } from '@/types/model'
 import type { Tool } from '@/types/tool'
-import type { AgentStep } from '@/types/agent'
+import type { AgentStep, RunResult, TokenUsage } from '@/types/agent'
 import { SERVER_TOOLS, executeServerTool, type InputImage } from '@/lib/agent-runner'
-
-interface RunResult {
-  steps: AgentStep[]
-  stopReason: 'done' | 'max_iterations'
-  finalOutput: string
-}
+import { stripThinkTags } from '@/lib/strip-think-tags'
 
 function toAnthropicTools(tools: Tool[]): Anthropic.Tool[] {
   return tools.map((t) => ({
@@ -27,7 +22,8 @@ export async function runWithAnthropic(
   onStep: (step: AgentStep) => void,
   onToken?: (token: string) => void,
   history?: { role: 'user' | 'assistant', content: string }[],
-  inputImages?: InputImage[]
+  inputImages?: InputImage[],
+  workspaceCwd?: string
 ): Promise<RunResult> {
   const client = new Anthropic({ apiKey: config.apiKey })
 
@@ -48,8 +44,21 @@ export async function runWithAnthropic(
   ]
   const steps: AgentStep[] = []
   let finalOutput = ''
+  const usage: TokenUsage = { inputTokens: 0, outputTokens: 0 }
 
   for (let i = 0; i < (maxIterations || 10); i++) {
+    // Inject iteration awareness
+    const total = maxIterations || 10
+    const remaining = total - i - 1
+    if (i > 0) {
+      const iterMsg = remaining <= 1
+        ? `[Iteration ${i + 1}/${total} — FINAL iteration. You MUST output your conclusion/summary now. Do NOT call any more tools.]`
+        : remaining <= 2
+          ? `[Iteration ${i + 1}/${total} — ${remaining} remaining. Start wrapping up. Complete your current task and prepare a summary.]`
+          : `[Iteration ${i + 1}/${total} — ${remaining} remaining.]`
+      messages.push({ role: 'user' as const, content: iterMsg })
+    }
+
     let fullText = ''
     let toolName = ''
     let toolId = ''
@@ -84,6 +93,12 @@ export async function runWithAnthropic(
       }
       if (event.type === 'message_delta') {
         stopReason = event.delta.stop_reason ?? ''
+        if (event.usage) {
+          usage.outputTokens += event.usage.output_tokens || 0
+        }
+      }
+      if (event.type === 'message_start' && event.message?.usage) {
+        usage.inputTokens += event.message.usage.input_tokens || 0
       }
     }
 
@@ -99,9 +114,14 @@ export async function runWithAnthropic(
       onStep(step)
     }
 
+    // Capture text from each iteration so max_iterations still has output
+    if (fullText) {
+      const { cleaned } = stripThinkTags(fullText)
+      finalOutput = cleaned
+    }
+
     // 任务完成
     if (stopReason === 'end_turn') {
-      finalOutput = fullText
       const doneStep: AgentStep = {
         id: crypto.randomUUID(),
         type: 'done',
@@ -110,7 +130,7 @@ export async function runWithAnthropic(
       }
       steps.push(doneStep)
       onStep(doneStep)
-      return { steps, stopReason: 'done', finalOutput }
+      return { steps, stopReason: 'done', finalOutput, usage }
     }
 
     // 需要调用工具
@@ -133,7 +153,7 @@ export async function runWithAnthropic(
       let toolResult: string
       try {
         if (SERVER_TOOLS.includes(toolName)) {
-          toolResult = await executeServerTool(toolName, toolInput)
+          toolResult = await executeServerTool(toolName, toolInput, workspaceCwd)
         } else if (tool) {
           toolResult = await tool.execute(toolInput)
         } else {
@@ -175,5 +195,5 @@ export async function runWithAnthropic(
     }
   }
 
-  return { steps, stopReason: 'max_iterations', finalOutput }
+  return { steps, stopReason: 'max_iterations', finalOutput, usage }
 }

@@ -6,6 +6,8 @@ import { OutputNode } from './output-node';
 import { ConditionNode } from './condition-node';
 import { PackedNode } from './packed-node';
 import { AiCodingAgentNode } from './ai-coding-agent-node';
+import { MergeNode } from './merge-node';
+import { DispatcherNode } from './dispatcher-node';
 
 export const nodeTypes = {
   agent: AgentNode,
@@ -18,4 +20,6 @@ export const nodeTypes = {
   output: OutputNode,
   packed: PackedNode,
   aiCodingAgent: AiCodingAgentNode,
+  merge: MergeNode,
+  dispatcher: DispatcherNode,
 };

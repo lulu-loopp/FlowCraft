@@ -14,6 +14,8 @@ interface RegistryStore {
   installSkillManual: (content: string) => Promise<void>
   uninstallSkill: (name: string) => Promise<void>
   toggleSkillEnabled: (name: string, enabled: boolean) => Promise<void>
+  analyzeSkill: (name: string) => Promise<void>
+  analyzeAllSkills: () => Promise<void>
   clearScanResult: () => void
   clearSkillError: () => void
 
@@ -136,6 +138,32 @@ export const useRegistryStore = create<RegistryStore>((set, get) => ({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ enabled }),
     })
+  },
+
+  analyzeSkill: async (name) => {
+    try {
+      const res = await fetch('/api/skills/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      })
+      if (res.ok) await get().fetchSkills()
+    } catch { /* non-critical */ }
+  },
+
+  analyzeAllSkills: async () => {
+    const names = get().skillRegistry
+      .filter(s => !s.profile?.analyzedAt)
+      .map(s => s.name)
+    if (names.length === 0) return
+    try {
+      const res = await fetch('/api/skills/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: names }),
+      })
+      if (res.ok) await get().fetchSkills()
+    } catch { /* non-critical */ }
   },
 
   clearScanResult: () => set({ scanResult: null }),

@@ -1,14 +1,9 @@
 import OpenAI from 'openai'
 import type { ModelConfig } from '@/types/model'
 import type { Tool } from '@/types/tool'
-import type { AgentStep } from '@/types/agent'
+import type { AgentStep, RunResult, TokenUsage } from '@/types/agent'
 import { SERVER_TOOLS, executeServerTool, type InputImage } from '@/lib/agent-runner'
-
-interface RunResult {
-  steps: AgentStep[]
-  stopReason: 'done' | 'max_iterations'
-  finalOutput: string
-}
+import { stripThinkTags } from '@/lib/strip-think-tags'
 
 function toOpenAITools(tools: Tool[]): OpenAI.ChatCompletionTool[] {
   return tools.map((t) => ({
@@ -24,6 +19,7 @@ function toOpenAITools(tools: Tool[]): OpenAI.ChatCompletionTool[] {
 function createClient(config: ModelConfig): OpenAI {
   const baseURLMap: Partial<Record<string, string>> = {
     deepseek: 'https://api.deepseek.com',
+    minimax: 'https://api.minimaxi.com/v1',
   }
   return new OpenAI({
     apiKey: config.apiKey,
@@ -40,7 +36,8 @@ export async function runWithOpenAI(
   onStep: (step: AgentStep) => void,
   onToken?: (token: string) => void,
   history?: { role: 'user' | 'assistant', content: string }[],
-  inputImages?: InputImage[]
+  inputImages?: InputImage[],
+  workspaceCwd?: string
 ): Promise<RunResult> {
   const client = createClient(config)
 
@@ -65,8 +62,21 @@ export async function runWithOpenAI(
   ]
   const steps: AgentStep[] = []
   let finalOutput = ''
+  const usage: TokenUsage = { inputTokens: 0, outputTokens: 0 }
 
   for (let i = 0; i < (maxIterations || 10); i++) {
+    // Inject iteration awareness
+    const total = maxIterations || 10
+    const remaining = total - i - 1
+    if (i > 0) {
+      const iterMsg = remaining <= 1
+        ? `[Iteration ${i + 1}/${total} — FINAL iteration. You MUST output your conclusion/summary now. Do NOT call any more tools.]`
+        : remaining <= 2
+          ? `[Iteration ${i + 1}/${total} — ${remaining} remaining. Start wrapping up. Complete your current task and prepare a summary.]`
+          : `[Iteration ${i + 1}/${total} — ${remaining} remaining.]`
+      messages.push({ role: 'system' as const, content: iterMsg })
+    }
+
     let fullText = ''
     let finishReason = ''
 
@@ -84,10 +94,18 @@ export async function runWithOpenAI(
       tool_choice: tools.length > 0 ? 'auto' : undefined,
       messages,
       stream: true,
-      temperature: config.temperature ?? 0.7,
+      stream_options: { include_usage: true },
+      temperature: config.provider === 'minimax'
+        ? Math.min(Math.max(config.temperature ?? 0.7, 0.01), 1.0)
+        : config.temperature ?? 0.7,
     })
 
     for await (const chunk of stream) {
+      // Capture usage from final chunk
+      if (chunk.usage) {
+        usage.inputTokens += chunk.usage.prompt_tokens || 0
+        usage.outputTokens += chunk.usage.completion_tokens || 0
+      }
       const delta = chunk.choices[0]?.delta
       finishReason = chunk.choices[0]?.finish_reason ?? finishReason
 
@@ -123,9 +141,14 @@ export async function runWithOpenAI(
       onStep(step)
     }
 
+    // Capture any text output even from intermediate iterations (for max_iterations fallback)
+    if (fullText) {
+      const { cleaned } = stripThinkTags(fullText)
+      finalOutput = cleaned
+    }
+
     // 任务完成
     if (finishReason === 'stop') {
-      finalOutput = fullText
       const doneStep: AgentStep = {
         id: crypto.randomUUID(),
         type: 'done',
@@ -134,7 +157,7 @@ export async function runWithOpenAI(
       }
       steps.push(doneStep)
       onStep(doneStep)
-      return { steps, stopReason: 'done', finalOutput }
+      return { steps, stopReason: 'done', finalOutput, usage }
     }
 
     // 需要调用工具
@@ -162,7 +185,7 @@ export async function runWithOpenAI(
         let toolResult: string
         try {
           if (SERVER_TOOLS.includes(tc.name)) {
-            toolResult = await executeServerTool(tc.name, toolInput)
+            toolResult = await executeServerTool(tc.name, toolInput, workspaceCwd)
           } else if (tool) {
             toolResult = await tool.execute(toolInput)
           } else {
@@ -207,5 +230,5 @@ export async function runWithOpenAI(
     }
   }
 
-  return { steps, stopReason: 'max_iterations', finalOutput }
+  return { steps, stopReason: 'max_iterations', finalOutput, usage }
 }

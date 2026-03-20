@@ -15,6 +15,7 @@ const demos: Record<AnimationType, React.LazyExoticComponent<React.ComponentType
   initializer: lazy(() => import('./demos/initializer-demo').then(m => ({ default: m.InitializerDemo }))),
   'coding-agent': lazy(() => import('./demos/coding-agent-demo').then(m => ({ default: m.CodingAgentDemo }))),
   packed: lazy(() => import('./demos/packed-demo').then(m => ({ default: m.PackedDemo }))),
+  dispatcher: lazy(() => import('./demos/dispatcher-demo').then(m => ({ default: m.DispatcherDemo }))),
 };
 
 interface NodeDemoAnimationProps {

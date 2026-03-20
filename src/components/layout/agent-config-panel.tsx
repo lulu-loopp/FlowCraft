@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '../ui/button';
 import { Plus, X, ChevronDown } from 'lucide-react';
 import { useRegistryStore } from '@/store/registry-store';
 import { useUIStore } from '@/store/uiStore';
-import { MODEL_OPTIONS, ModelProvider } from '@/types/model';
+import { MODEL_OPTIONS, ModelProvider, NON_MULTIMODAL_MODELS } from '@/types/model';
 import type { Node } from '@xyflow/react';
 import {
   ConfigThemeCtx,
@@ -17,15 +17,34 @@ import {
 import { SkillInstallerInline } from '../canvas/skill-installer-inline';
 import { IndividualEditWarning } from '../canvas/individual-edit-warning';
 import { useAgentConfig } from '@/hooks/useAgentConfig';
+import { IMAGE_MODEL_PROVIDER, type ImageProvider } from '@/lib/tools/definitions';
 
 const AVAILABLE_TOOL_IDS = [
-  { id: 'web_search',     labelKey: 'tool.webSearch' },
-  { id: 'calculator',     labelKey: 'tool.calculator' },
-  { id: 'url_fetch',      labelKey: 'tool.urlFetch' },
-  { id: 'code_execute',   labelKey: 'tool.codeExecute' },
-  { id: 'python_execute', labelKey: 'tool.pythonExecute' },
-  { id: 'brave_search',   labelKey: 'tool.braveSearch' },
+  { id: 'web_search',      labelKey: 'tool.webSearch' },
+  { id: 'calculator',      labelKey: 'tool.calculator' },
+  { id: 'url_fetch',       labelKey: 'tool.urlFetch' },
+  { id: 'js_execute',      labelKey: 'tool.jsExecute' },
+  { id: 'python_execute',  labelKey: 'tool.pythonExecute' },
+  { id: 'brave_search',    labelKey: 'tool.braveSearch' },
+  { id: 'image_generate',  labelKey: 'tool.imageGenerate' },
+  { id: 'save_document',  labelKey: 'tool.saveDocument' },
 ] as const;
+
+/** Check if any image-generation API key is configured */
+function useImageKeyAvailable() {
+  const [available, setAvailable] = useState<boolean | null>(null);
+  useEffect(() => {
+    fetch('/api/settings/keys-status')
+      .then(r => r.json())
+      .then((d: Record<ImageProvider, boolean>) => {
+        setAvailable(
+          Object.values(IMAGE_MODEL_PROVIDER).some(p => d[p])
+        );
+      })
+      .catch(() => setAvailable(false));
+  }, []);
+  return available;
+}
 
 const SCHEMA_TYPES = ['string', 'number', 'boolean', 'object', 'array'];
 
@@ -55,6 +74,7 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
   } = useAgentConfig(node);
 
   const theme = NODE_CONFIG_THEMES[node.type ?? 'agent'] || NODE_CONFIG_THEMES.agent;
+  const imageKeyAvailable = useImageKeyAvailable();
 
   useEffect(() => { fetchSkills(); }, [fetchSkills]);
 
@@ -62,7 +82,14 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
     { value: 'anthropic', label: 'Anthropic' },
     { value: 'openai',    label: 'OpenAI' },
     { value: 'deepseek',  label: 'DeepSeek' },
+    { value: 'google',    label: 'Google' },
+    { value: 'minimax',   label: 'MiniMax' },
   ];
+
+  const modelOptions: DropdownOption[] = MODEL_OPTIONS[provider as ModelProvider]?.map(m => ({
+    value: m,
+    label: NON_MULTIMODAL_MODELS.has(m) ? `${m}${t('config.noImageSupport')}` : m,
+  })) ?? [];
 
   const inputCls = `w-full p-2.5 text-sm rounded-lg border border-slate-200 bg-white/50 hover:border-slate-300 focus:ring-2 ${theme.focusRing} outline-none transition-colors`;
 
@@ -113,7 +140,7 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
             />
             <DropdownSelect
               value={model}
-              options={MODEL_OPTIONS[provider].map(m => ({ value: m, label: m }))}
+              options={modelOptions}
               onChange={(m) => updateNodeData({ model: m })}
             />
           </div>
@@ -159,19 +186,25 @@ export function AgentConfigPanel({ node }: AgentConfigPanelProps) {
         <div>
           <label className="block text-xs font-medium text-slate-500 mb-2">{t('config.capabilities')}</label>
           <div className="grid grid-cols-2 gap-1.5">
-            {AVAILABLE_TOOL_IDS.map((tool) => (
-              <ToggleChip
-                key={tool.id}
-                label={t(tool.labelKey)}
-                checked={enabledTools.includes(tool.id)}
-                onChange={(checked) => {
-                  const next = checked
-                    ? [...enabledTools, tool.id]
-                    : enabledTools.filter(x => x !== tool.id);
-                  updateNodeData({ enabledTools: next });
-                }}
-              />
-            ))}
+            {AVAILABLE_TOOL_IDS.map((tool) => {
+              const isImageTool = tool.id === 'image_generate';
+              const disabled = isImageTool && imageKeyAvailable === false;
+              return (
+                <ToggleChip
+                  key={tool.id}
+                  label={t(tool.labelKey)}
+                  checked={enabledTools.includes(tool.id)}
+                  disabled={disabled}
+                  title={disabled ? t('tool.imageGenerateNoKey') : undefined}
+                  onChange={(checked) => {
+                    const next = checked
+                      ? [...enabledTools, tool.id]
+                      : enabledTools.filter(x => x !== tool.id);
+                    updateNodeData({ enabledTools: next });
+                  }}
+                />
+              );
+            })}
           </div>
         </div>
 

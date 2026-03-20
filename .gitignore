@@ -62,4 +62,17 @@ next-env.d.ts
 # Test artifacts
 /test-screenshots/
 /test*.png
+/test-results/
 /doc/review-screenshots/
+
+# Logs
+/logs/
+
+# Screenshots
+screenshot-*.png
+
+# Generated assets
+/public/generated/
+
+# Python test scripts
+test-e2e-*.py

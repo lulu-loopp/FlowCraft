@@ -13,7 +13,7 @@ interface ScanResult {
 
 type Mode = 'url' | 'paste';
 
-export function SkillInstallerInline() {
+export function SkillInstallerInline({ onInstalled }: { onInstalled?: () => void } = {}) {
   const { fetchSkills, isScanning, isInstallingSkill, skillError, clearSkillError } = useRegistryStore();
   const { t } = useUIStore();
 
@@ -68,6 +68,7 @@ export function SkillInstallerInline() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       await fetchSkills();
+      onInstalled?.();
       handleClose();
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : 'Unknown error');
@@ -93,6 +94,7 @@ export function SkillInstallerInline() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       await fetchSkills();
+      onInstalled?.();
       handleClose();
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : 'Unknown error');

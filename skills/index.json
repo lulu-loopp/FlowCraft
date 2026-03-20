@@ -5,48 +5,288 @@
       "description": "Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a skill from scratch, edit, or optimize an existing skill, run evals to test a skill, benchmark skill performance with variance analysis, or optimize a skills description for better triggering accuracy.",
       "source": "https://github.com/anthropics/skills/blob/main/skills/skill-creator/SKILL.md",
       "installedAt": 1773537849874,
-      "enabled": true,
-      "path": "skills/skill-creator"
+      "enabled": false,
+      "path": "skills/skill-creator",
+      "profile": {
+        "tags": [
+          "knowledge",
+          "delegation"
+        ],
+        "analyzedAt": 1773897950909,
+        "recommendedModels": [
+          "tool_calling",
+          "long_context"
+        ],
+        "summary": "指导用户创建、修改、测试和优化技能，提供技能开发的全流程指南和最佳实践。"
+      }
     },
     {
       "name": "algorithmic-art",
       "description": "Creating algorithmic art using p5.js with seeded randomness and interactive parameter exploration. Use this when users request creating art using code, generative art, algorithmic art, flow fields, or particle systems. Create original algorithmic art rather than copying existing artists work to avoid copyright violations.",
       "source": "https://github.com/anthropics/skills/tree/main/skills/algorithmic-art",
       "installedAt": 1773537894317,
-      "enabled": true,
-      "path": "skills/algorithmic-art"
+      "enabled": false,
+      "path": "skills/algorithmic-art",
+      "profile": {
+        "tags": [
+          "file_output",
+          "code_gen",
+          "visual"
+        ],
+        "analyzedAt": 1773897946548,
+        "outputFileTypes": [
+          ".md",
+          ".html",
+          ".js"
+        ],
+        "requiredTools": [
+          "code_execute"
+        ],
+        "recommendedModels": [
+          "tool_calling",
+          "long_context"
+        ],
+        "summary": "通过创建算法哲学和p5.js代码生成交互式生成艺术，输出.md、.html和.js文件。"
+      }
     },
     {
       "name": "codex",
       "description": "Delegate coding tasks to Codex CLI for execution. Only invoke this skill when the user explicitly asks to use Codex — e.g., \"用 codex 来做\", \"让 codex 执行\", \"ask codex to...\", \"codex 帮我写\". Do not proactively delegate to Codex for general coding requests the user didn't specifically ask Codex to handle.",
       "source": "https://github.com/oil-oil/codex/tree/main",
       "installedAt": 1742000000000,
-      "enabled": true,
-      "path": "skills/codex"
+      "enabled": false,
+      "path": "skills/codex",
+      "profile": {
+        "tags": [
+          "delegation"
+        ],
+        "analyzedAt": 1773897954264,
+        "requiredTools": [
+          "code_execute"
+        ],
+        "recommendedModels": [
+          "tool_calling"
+        ],
+        "summary": "将编码任务委托给 Codex CLI 执行，通过脚本处理输出和会话跟踪。"
+      }
     },
     {
       "name": "design-taste-frontend",
       "description": "Senior UI/UX Engineer. Architect digital interfaces overriding default LLM biases. Enforces metric-based rules, strict component architecture, CSS hardware acceleration, and balanced design engineering.",
       "source": "https://github.com/Leonxlnx/taste-skill/tree/main/taste-skill",
       "installedAt": 1742000001000,
-      "enabled": true,
-      "path": "skills/taste-skill"
+      "enabled": false,
+      "path": "skills/taste-skill",
+      "profile": {
+        "tags": [
+          "knowledge",
+          "visual"
+        ],
+        "analyzedAt": 1773898017820,
+        "recommendedModels": [
+          "long_context",
+          "reasoning"
+        ],
+        "summary": "提供高级前端UI/UX设计指南和最佳实践，用于纠正AI偏见并生成优质数字界面。"
+      }
     },
     {
       "name": "redesign-existing-projects",
       "description": "Upgrades existing websites and apps to premium quality. Audits current design, identifies generic AI patterns, and applies high-end design standards without breaking functionality. Works with any CSS framework or vanilla CSS.",
       "source": "https://github.com/Leonxlnx/taste-skill/tree/main/redesign-skill",
       "installedAt": 1742000002000,
-      "enabled": true,
-      "path": "skills/redesign-skill"
+      "enabled": false,
+      "path": "skills/redesign-skill",
+      "profile": {
+        "tags": [
+          "knowledge",
+          "visual"
+        ],
+        "analyzedAt": 1773898022912,
+        "recommendedModels": [
+          "long_context",
+          "reasoning"
+        ],
+        "summary": "提供网站和应用程序设计审计与升级指南，识别并修复通用AI设计模式，应用高端设计标准而不破坏功能。"
+      }
     },
     {
       "name": "full-output-enforcement",
       "description": "Forces complete, production-quality code output without truncation, placeholders, or shortcuts. Use when you need full file implementations, multiple components, or any task where partial output would be a broken output.",
       "source": "https://github.com/Leonxlnx/taste-skill/tree/main/output-skill",
       "installedAt": 1742000003000,
+      "enabled": false,
+      "path": "skills/output-skill",
+      "profile": {
+        "tags": [
+          "knowledge"
+        ],
+        "analyzedAt": 1773898026692,
+        "recommendedModels": [
+          "long_context"
+        ],
+        "summary": "提供强制完整输出的策略和指南，确保代码或内容不包含截断或占位符，适用于需要生产级完整实现的任务。"
+      }
+    },
+    {
+      "name": "flow-design",
+      "description": "工作流设计专家知识库，帮助 AI 生成高质量的 FlowCraft 工作流。包含设计模式、节点配置模板和常见错误避免指南。",
+      "source": "builtin",
+      "installedAt": 1742000000000,
+      "enabled": false,
+      "path": "skills/flow-design",
+      "builtin": true,
+      "profile": {
+        "tags": [
+          "knowledge"
+        ],
+        "analyzedAt": 1773897957831,
+        "recommendedModels": [
+          "long_context"
+        ],
+        "summary": "提供生成高质量FlowCraft工作流（flow.json）的完整知识、规范和设计指南。"
+      }
+    },
+    {
+      "name": "pptx",
+      "description": "Use this skill any time a .pptx file is involved in any way — as input, output, or both. This includes: creating slide decks, pitch decks, or presentations; reading, parsing, or extracting text from any .pptx file (even if the extracted content will be used elsewhere, like in an email or summary); editing, modifying, or updating existing presentations; combining or splitting slide files; working with templates, layouts, speaker notes, or comments. Trigger whenever the user mentions \\deck,\\ \\slides,\\ \\presentation,\\ or references a .pptx filename, regardless of what they plan to do with the content afterward. If a .pptx file needs to be opened, created, or touched, use this skill.",
+      "source": "https://github.com/anthropics/skills/tree/main/skills/pptx",
+      "installedAt": 1773889922405,
       "enabled": true,
-      "path": "skills/output-skill"
+      "path": "skills/pptx",
+      "profile": {
+        "tags": [
+          "file_output",
+          "knowledge",
+          "delegation",
+          "visual"
+        ],
+        "analyzedAt": 1773897942545,
+        "outputFileTypes": [
+          ".pptx"
+        ],
+        "requiredTools": [
+          "python_execute"
+        ],
+        "dependencies": [
+          "pip:markitdown[pptx]",
+          "pip:Pillow",
+          "npm:pptxgenjs",
+          "system:soffice",
+          "system:pdftoppm"
+        ],
+        "recommendedModels": [
+          "tool_calling",
+          "long_context"
+        ],
+        "summary": "用于创建、编辑、读取和分析PPTX文件的技能，包括设计指南、模板处理和视觉质量检查。"
+      }
+    },
+    {
+      "name": "docx",
+      "description": "Use this skill whenever the user wants to create, read, edit, or manipulate Word documents (.docx files). Triggers include: any mention of Word doc, word document, .docx, or requests to produce professional documents with formatting like tables of contents, headings, page numbers, or letterheads. Also use when extracting or reorganizing content from .docx files, inserting or replacing images in documents, performing find-and-replace in Word files, working with tracked changes or comments, or converting content into a polished Word document. If the user asks for a report, memo, letter, template, or similar deliverable as a Word or .docx file, use this skill. Do NOT use for PDFs, spreadsheets, Google Docs, or general coding tasks unrelated to document generation.",
+      "source": "https://github.com/anthropics/skills/tree/main/skills/docx",
+      "installedAt": 1773898200947,
+      "enabled": false,
+      "path": "skills/docx",
+      "profile": {
+        "tags": [
+          "file_output",
+          "knowledge",
+          "code_gen"
+        ],
+        "analyzedAt": 1773898205323,
+        "outputFileTypes": [
+          ".docx"
+        ],
+        "requiredTools": [
+          "python_execute"
+        ],
+        "dependencies": [
+          "npm:docx",
+          "pip:python-pptx"
+        ],
+        "recommendedModels": [
+          "tool_calling"
+        ],
+        "summary": "创建、编辑和分析Word文档（.docx文件），提供详细指南和代码示例。"
+      }
+    },
+    {
+      "name": "xlsx",
+      "description": "Use this skill any time a spreadsheet file is the primary input or output. This means any task where the user wants to: open, read, edit, or fix an existing .xlsx, .xlsm, .csv, or .tsv file (e.g., adding columns, computing formulas, formatting, charting, cleaning messy data); create a new spreadsheet from scratch or from other data sources; or convert between tabular file formats. Trigger especially when the user references a spreadsheet file by name or path — even casually (like \\the xlsx in my downloads\\) — and wants something done to it or produced from it. Also trigger for cleaning or restructuring messy tabular data files (malformed rows, misplaced headers, junk data) into proper spreadsheets. The deliverable must be a spreadsheet file. Do NOT trigger when the primary deliverable is a Word document, HTML report, standalone Python script, database pipeline, or Google Sheets API integration, even if tabular data is involved.",
+      "source": "https://github.com/anthropics/skills/tree/main/skills/xlsx",
+      "installedAt": 1773898206365,
+      "enabled": false,
+      "path": "skills/xlsx",
+      "profile": {
+        "tags": [
+          "file_output",
+          "knowledge"
+        ],
+        "analyzedAt": 1773898210982,
+        "outputFileTypes": [
+          ".xlsx",
+          ".xlsm",
+          ".csv",
+          ".tsv"
+        ],
+        "requiredTools": [
+          "python_execute"
+        ],
+        "dependencies": [
+          "pip:pandas",
+          "pip:openpyxl",
+          "system:LibreOffice"
+        ],
+        "recommendedModels": [
+          "tool_calling"
+        ],
+        "summary": "创建、编辑和分析电子表格文件，包括使用公式、格式化和数据清理，并确保专业输出。"
+      }
+    },
+    {
+      "name": "pdf",
+      "description": "Use this skill whenever the user wants to do anything with PDF files. This includes reading or extracting text/tables from PDFs, combining or merging multiple PDFs into one, splitting PDFs apart, rotating pages, adding watermarks, creating new PDFs, filling PDF forms, encrypting/decrypting PDFs, extracting images, and OCR on scanned PDFs to make them searchable. If the user mentions a .pdf file or asks to produce one, use this skill.",
+      "source": "https://github.com/anthropics/skills/tree/main/skills/pdf",
+      "installedAt": 1773898207744,
+      "enabled": false,
+      "path": "skills/pdf",
+      "profile": {
+        "tags": [
+          "file_output",
+          "knowledge",
+          "code_gen",
+          "delegation"
+        ],
+        "analyzedAt": 1773898216181,
+        "outputFileTypes": [
+          ".pdf",
+          ".txt",
+          ".xlsx",
+          ".jpg"
+        ],
+        "requiredTools": [
+          "python_execute",
+          "code_execute"
+        ],
+        "dependencies": [
+          "pip:pypdf",
+          "pip:pdfplumber",
+          "pip:reportlab",
+          "pip:pandas",
+          "pip:pytesseract",
+          "pip:pdf2image",
+          "system:pdftotext",
+          "system:qpdf",
+          "system:pdfimages"
+        ],
+        "recommendedModels": [
+          "tool_calling",
+          "long_context"
+        ],
+        "summary": "提供PDF文件处理指南，包括读取、合并、拆分、旋转、添加水印、创建、加密、提取文本/表格/图像、OCR等操作，使用Python库和命令行工具。"
+      }
     }
   ]
 }

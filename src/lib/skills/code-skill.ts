@@ -39,7 +39,7 @@ export function createCodeSkill(
 - 说明代码的功能和运行结果
 - 如果有多个版本，只返回最终正确的版本`,
     modelConfig,
-    enabledTools: ['python_execute', 'code_execute'],
+    enabledTools: ['python_execute', 'js_execute'],
     maxIterations: 8,
     onSubStep,
   })

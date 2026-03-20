@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { NodeProps, Handle, Position } from '@xyflow/react';
-import { GitBranch, CheckCircle2, AlertCircle, HelpCircle, AlertTriangle, RefreshCw } from 'lucide-react';
+import { GitBranch, CheckCircle2, AlertCircle, HelpCircle, AlertTriangle, RefreshCw, Play, FastForward } from 'lucide-react';
 import { NodeColors } from '@/styles/tokens';
 import { Badge } from '@/components/ui/badge';
 import { useFlowStore } from '@/store/flowStore';
 import { useUIStore } from '@/store/uiStore';
+import { useRunFromNode } from '@/hooks/useRunFromNode';
 import { NodeHelpModal } from './node-help-modal';
 import { ConditionNodeToolbar } from './condition-node-toolbar';
 import { ConditionNodeBody } from './condition-node-body';
@@ -13,9 +14,19 @@ import type { TranslationKey } from '@/lib/i18n';
 type Mode = 'natural' | 'expression';
 
 export function ConditionNode({ id, data, selected }: NodeProps) {
-  const { nodes, updateNodeData } = useFlowStore();
+  const { nodes, updateNodeData, isRunning: isFlowRunning } = useFlowStore();
   const { t } = useUIStore();
+  const runCtx = useRunFromNode();
   const [showHelp, setShowHelp] = useState(false);
+  const [upstreamWarning, setUpstreamWarning] = useState<{ missingLabels: string[] } | null>(null);
+
+  const handleRunSingle = async () => {
+    if (!runCtx) return;
+    const result = await runCtx.runSingleNode(id);
+    if (result?.needsWarning) {
+      setUpstreamWarning({ missingLabels: result.missingLabels });
+    }
+  };
   const theme = NodeColors.control;
 
   const currentNode = nodes.find((n) => n.id === id);
@@ -163,6 +174,64 @@ export function ConditionNode({ id, data, selected }: NodeProps) {
                 .replace('{max}', String(maxLoop))}
             </>
           )}
+        </div>
+      )}
+
+      {/* Hover play buttons */}
+      {runCtx && !isFlowRunning && !isRunning && !selected && (
+        <div
+          className="absolute -bottom-3 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-1"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <button
+            className="p-1.5 bg-white rounded-full shadow-md border border-slate-200
+              text-slate-400 hover:text-emerald-600 hover:border-emerald-300
+              active:scale-90 transition-all"
+            onClick={(e) => { e.stopPropagation(); handleRunSingle(); }}
+            title={t('node.runSingle')}
+          >
+            <Play className="w-3 h-3" />
+          </button>
+          <button
+            className="p-1.5 bg-white rounded-full shadow-md border border-slate-200
+              text-slate-400 hover:text-teal-600 hover:border-teal-300
+              active:scale-90 transition-all"
+            onClick={(e) => { e.stopPropagation(); runCtx.runFromNode(id); }}
+            title={t('node.runFromHere')}
+          >
+            <FastForward className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+
+      {/* Upstream missing warning popup */}
+      {upstreamWarning && (
+        <div
+          className="absolute -bottom-[88px] left-1/2 -translate-x-1/2 z-50 w-[240px]"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <div className="bg-white rounded-lg shadow-xl border border-amber-200 p-3">
+            <div className="flex items-start gap-2 mb-2">
+              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                {t('node.upstreamMissing').replace('{nodes}', upstreamWarning.missingLabels.join(', '))}
+              </p>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                className="text-[11px] px-2 py-1 text-slate-500 hover:text-slate-700 rounded transition-colors"
+                onClick={() => setUpstreamWarning(null)}
+              >
+                {t('node.cancel')}
+              </button>
+              <button
+                className="text-[11px] px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded transition-colors"
+                onClick={async () => { setUpstreamWarning(null); if (runCtx) await runCtx.runSingleNode(id, { force: true }); }}
+              >
+                {t('node.runAnyway')}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

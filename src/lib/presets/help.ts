@@ -1,7 +1,7 @@
 export type AnimationType =
   | 'agent' | 'tool' | 'skill' | 'human'
   | 'condition' | 'merge' | 'input' | 'output'
-  | 'initializer' | 'coding-agent' | 'packed';
+  | 'initializer' | 'coding-agent' | 'packed' | 'dispatcher';
 
 export interface HelpContent {
   title: { zh: string; en: string };
@@ -149,5 +149,50 @@ export const NODE_HELP: Record<string, HelpContent> = {
     recommendedPairs: ['agent', 'io'],
     demoFlowId: null,
     animationType: 'packed',
+  },
+  merge: {
+    title: { zh: '合并', en: 'Merge' },
+    iconName: 'GitMerge',
+    description: {
+      zh: '合并多路输入为一个输出。等待所有上游节点完成后，将它们的输出拼接在一起传给下游。',
+      en: 'Merge multiple inputs into one output. Waits for all upstream nodes to complete, then concatenates their outputs.',
+    },
+    useCases: {
+      zh: ['汇总多个 Agent 的分析结果', '收集并行任务的输出', '整合多维度审查报告', '合并分支后统一处理'],
+      en: ['Aggregate analysis from multiple agents', 'Collect parallel task outputs', 'Consolidate multi-dimensional reviews', 'Merge branches for unified processing'],
+    },
+    recommendedPairs: ['agent', 'dispatcher', 'condition'],
+    demoFlowId: null,
+    animationType: 'merge',
+  },
+  'coding-agent': {
+    title: { zh: 'AI 编程助手', en: 'AI Coding Agent' },
+    iconName: 'Terminal',
+    description: {
+      zh: '专业的 AI 编程节点。支持 Claude Code 和 Codex 等编程工具，可以直接在工作区内编写、修改和执行代码。',
+      en: 'Professional AI coding node. Supports Claude Code and Codex tools for writing, editing, and executing code directly in the workspace.',
+    },
+    useCases: {
+      zh: ['自动编写代码', '代码审查与重构', '自动修复 Bug', '生成测试用例'],
+      en: ['Auto-generate code', 'Code review and refactoring', 'Auto-fix bugs', 'Generate test cases'],
+    },
+    recommendedPairs: ['agent', 'io', 'output'],
+    demoFlowId: null,
+    animationType: 'coding-agent',
+  },
+  dispatcher: {
+    title: { zh: '分发器', en: 'Dispatcher' },
+    iconName: 'Split',
+    description: {
+      zh: '智能任务分发节点。根据下游节点的角色，使用 AI 将上游内容拆分为针对性的输入分别发送给每个下游。避免所有下游收到相同的无差别内容。',
+      en: 'Smart task dispatch node. Uses AI to split upstream content into targeted inputs for each downstream node based on their roles. Prevents all downstream nodes from receiving identical undifferentiated content.',
+    },
+    useCases: {
+      zh: ['按角色拆分任务', '一对多内容路由', '避免并行 Agent 做重复工作', '将规划分解为具体子任务'],
+      en: ['Split tasks by role', 'One-to-many content routing', 'Prevent duplicate work among parallel agents', 'Decompose plans into specific subtasks'],
+    },
+    recommendedPairs: ['agent', 'merge'],
+    demoFlowId: null,
+    animationType: 'dispatcher',
   },
 };

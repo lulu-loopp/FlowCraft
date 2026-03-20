@@ -179,23 +179,31 @@ export function ToggleChip({
   label,
   checked,
   onChange,
+  disabled,
+  title,
 }: {
   label: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
+  title?: string;
 }) {
   const theme = React.useContext(ConfigThemeCtx);
   return (
     <button
       type="button"
-      onClick={() => onChange(!checked)}
+      onClick={() => !disabled && onChange(!checked)}
+      disabled={disabled}
+      title={title}
       className={`relative flex items-center gap-2 text-xs rounded-lg px-2.5 py-2 border transition-all text-left ${
-        checked
-          ? theme.chipActive
-          : `bg-white text-slate-600 border-slate-200 ${theme.chipHover}`
+        disabled
+          ? 'bg-slate-50 text-slate-400 border-slate-100 cursor-not-allowed opacity-60'
+          : checked
+            ? theme.chipActive
+            : `bg-white text-slate-600 border-slate-200 ${theme.chipHover}`
       }`}
     >
-      {checked && (
+      {checked && !disabled && (
         <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-white/70" />
       )}
       <span className="truncate pr-2">{label}</span>

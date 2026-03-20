@@ -1,0 +1,59 @@
+{
+  "id": "flow-1773985418408",
+  "name": "Untitled Flow",
+  "nodes": [
+    {
+      "id": "io-1773985419712",
+      "type": "io",
+      "position": {
+        "x": 200,
+        "y": 220
+      },
+      "data": {
+        "label": "io node"
+      },
+      "selected": false,
+      "measured": {
+        "width": 260,
+        "height": 221
+      }
+    },
+    {
+      "id": "agent-1773985420320",
+      "type": "agent",
+      "position": {
+        "x": 330,
+        "y": 330.49999999999994
+      },
+      "data": {
+        "label": "agent node",
+        "provider": "minimax",
+        "model": "MiniMax-M2.5"
+      },
+      "selected": false,
+      "measured": {
+        "width": 260,
+        "height": 148
+      }
+    },
+    {
+      "id": "output-1773985420937",
+      "type": "output",
+      "position": {
+        "x": 413.98,
+        "y": 330.49999999999994
+      },
+      "data": {
+        "label": "output node"
+      },
+      "selected": false,
+      "measured": {
+        "width": 260,
+        "height": 157
+      }
+    }
+  ],
+  "edges": [],
+  "createdAt": "2026-03-20T05:43:38.408Z",
+  "updatedAt": "2026-03-20T05:43:41.814Z"
+}

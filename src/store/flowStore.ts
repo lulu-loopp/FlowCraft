@@ -57,6 +57,7 @@ type FlowState = {
   setEdges: (edges: Edge[]) => void;
   setNodesAndEdges: (nodes: Node[], edges: Edge[]) => void;
   addNode: (node: Node) => void;
+  addSingleEdge: (edge: Edge) => void;
   removeNode: (id: string) => void;
   duplicateNode: (id: string) => void;
   toggleNodeLock: (id: string) => void;
@@ -124,7 +125,8 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   setEdges: (edges) => set({ edges }),
   setNodesAndEdges: (nodes, edges) => set({ nodes, edges }),
   addNode: (node) => set({ nodes: [...get().nodes, node] }),
-  
+  addSingleEdge: (edge) => set({ edges: [...get().edges, edge] }),
+
   removeNode: (id) => {
     set({
       nodes: get().nodes.filter((n) => n.id !== id),

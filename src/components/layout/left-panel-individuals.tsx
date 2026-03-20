@@ -33,6 +33,7 @@ function getMaturityColor(runCount: number): string {
   return 'bg-slate-100 text-slate-500'
 }
 
+// TODO: Add drag-to-reorder for individual agents list (Issue 4)
 export function IndividualsSection({ individuals, search, onDragStart, onDelete }: IndividualsSectionProps) {
   const { t } = useUIStore()
   const [open, setOpen] = useState(true)

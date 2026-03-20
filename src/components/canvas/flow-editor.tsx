@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useRef, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { ReactFlow, Background, Controls, MiniMap, ReactFlowProvider, useReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import type { Node, Edge } from '@xyflow/react';
@@ -18,6 +19,7 @@ import { buildPackHandleConfig, buildPackData } from '@/hooks/usePackedNode';
 import { useLoadIndividual } from '@/hooks/useLoadIndividual';
 import { handleDropPack } from './flow-editor-pack-drop';
 import { PreviewTypesProvider } from './preview-types-context';
+import { importYamlFile } from '@/lib/yaml-import-handler';
 
 const edgeTypes = { custom: CustomEdge };
 
@@ -30,6 +32,17 @@ function FlowCanvas({ onSave }: { onSave?: () => void }) {
   const { t } = useUIStore();
   const [packOpen, setPackOpen] = useState(false);
   const loadIndividualData = useLoadIndividual();
+  const router = useRouter();
+
+  // Cache default provider/model from settings (Issue 1)
+  const [defaultProvider, setDefaultProvider] = useState<string>('');
+  const [defaultModel, setDefaultModel] = useState<string>('');
+  useEffect(() => {
+    fetch('/api/settings').then(r => r.json()).then(s => {
+      if (s.defaultProvider) setDefaultProvider(s.defaultProvider);
+      if (s.defaultModel) setDefaultModel(s.defaultModel);
+    }).catch(() => {});
+  }, []);
   const selectedNodes = React.useMemo(() => nodes.filter(n => n.selected), [nodes]);
   const selectedNodesCount = selectedNodes.length;
 
@@ -45,6 +58,19 @@ function FlowCanvas({ onSave }: { onSave?: () => void }) {
 
   const onDrop = useCallback((event: React.DragEvent) => {
     event.preventDefault();
+
+    // Handle .yaml file drops
+    const files = event.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      if (file.name.endsWith('.yaml') || file.name.endsWith('.yml')) {
+        importYamlFile(file).then(result => {
+          router.push('/canvas/' + result.flowId);
+        }).catch(err => console.error('YAML drop import failed:', err));
+        return;
+      }
+    }
+
     const type = event.dataTransfer.getData('application/reactflow');
     if (!type) return;
     const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
@@ -61,13 +87,14 @@ function FlowCanvas({ onSave }: { onSave?: () => void }) {
           enabledTools: preset.data.enabledTools, maxIterations: preset.data.maxIterations, provider: preset.data.provider, model: preset.data.model };
       } else { data = { label: `${type} node` } }
     } else if (agentName) { data = { label: agentName, systemPrompt: '', isReference: true, individualName: agentName } }
+    else if (type === 'agent') { data = { label: `${type} node`, ...(defaultProvider && { provider: defaultProvider }), ...(defaultModel && { model: defaultModel }) } }
     else { data = { label: `${type} node` } }
     const nodeId = `${type}-${Date.now()}`;
     const newNode: Node = { id: nodeId, type, position, data, selected: !!presetId };
     addNode(newNode);
     if (presetId) setSelectedNodeId(newNode.id);
     if (agentName) loadIndividualData(nodeId, agentName);
-  }, [screenToFlowPosition, addNode, setSelectedNodeId, t, loadIndividualData]);
+  }, [screenToFlowPosition, addNode, setSelectedNodeId, t, loadIndividualData, router, defaultProvider, defaultModel]);
 
   const handlePack = useCallback(async (name: string, description: string, isShared: boolean) => {
     const selectedIds = new Set(selectedNodes.map(n => n.id));

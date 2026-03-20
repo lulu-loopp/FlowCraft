@@ -3,7 +3,7 @@ import React from 'react'
 import { Handle, Position, NodeProps } from '@xyflow/react'
 import { useFlowStore } from '@/store/flowStore'
 import { useUIStore } from '@/store/uiStore'
-import { Upload, X, FileText, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Upload, X, FileText, File as FileIcon, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react'
 
 export type { InputFile } from '@/types/flow'
 import type { InputFile } from '@/types/flow'
@@ -17,8 +17,29 @@ function readAsDataURL(file: File): Promise<string> {
   })
 }
 
+// Text/code extensions that should be read as text content
+const TEXT_EXTS = new Set([
+  '.txt', '.md', '.csv', '.json', '.ts', '.tsx', '.js', '.jsx', '.py',
+  '.html', '.css', '.yaml', '.yml', '.xml', '.sh', '.bat', '.sql',
+  '.r', '.m', '.c', '.cpp', '.h', '.hpp', '.java', '.go', '.rs',
+  '.rb', '.php', '.swift', '.kt', '.scala', '.lua', '.pl', '.ini',
+  '.toml', '.cfg', '.conf', '.env', '.log', '.diff', '.patch',
+])
+
+// Binary document extensions that should be uploaded to workspace
+const DOCUMENT_EXTS = new Set([
+  '.docx', '.pptx', '.xlsx', '.pdf', '.doc', '.xls', '.ppt',
+  '.odt', '.ods', '.odp', '.rtf', '.epub',
+  '.zip', '.tar', '.gz', '.7z', '.rar',
+])
+
+function getFileExt(name: string): string {
+  const dot = name.lastIndexOf('.')
+  return dot >= 0 ? name.slice(dot).toLowerCase() : ''
+}
+
 export function InputNode({ id, data, selected }: NodeProps) {
-  const { setNodes, nodes, removeNode, duplicateNode, toggleNodeLock } = useFlowStore()
+  const { setNodes, nodes, removeNode, duplicateNode, toggleNodeLock, flowId } = useFlowStore()
   const { t } = useUIStore()
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const composingRef = React.useRef(false)
@@ -50,6 +71,7 @@ export function InputNode({ id, data, selected }: NodeProps) {
     const newFiles: InputFile[] = []
 
     for (const file of files) {
+      // Images
       if (file.type.startsWith('image/')) {
         const dataUrl = await readAsDataURL(file)
         newFiles.push({
@@ -59,14 +81,63 @@ export function InputNode({ id, data, selected }: NodeProps) {
         continue
       }
 
-      const textExts = ['.txt', '.md', '.csv', '.json', '.ts', '.tsx', '.js', '.jsx', '.py', '.html', '.css', '.yaml']
-      const isText = textExts.some(ext => file.name.endsWith(ext)) || file.type.startsWith('text/')
-      if (isText) {
+      const ext = getFileExt(file.name)
+
+      // Text/code files — read content inline
+      if (TEXT_EXTS.has(ext) || file.type.startsWith('text/')) {
         newFiles.push({ name: file.name, type: 'text', content: await file.text() })
         continue
       }
 
-      alert(t('node.io.unsupportedFormat').replace('{name}', file.name))
+      // Binary documents — upload to workspace
+      if (DOCUMENT_EXTS.has(ext)) {
+        if (flowId) {
+          try {
+            const formData = new FormData()
+            formData.append('file', file)
+            formData.append('path', `uploads/${file.name}`)
+            await fetch(`/api/workspace/${flowId}/file`, { method: 'POST', body: formData })
+          } catch (err) {
+            console.error('Failed to upload document to workspace:', err)
+          }
+        }
+        newFiles.push({
+          name: file.name,
+          type: 'document',
+          content: `[Uploaded document: ${file.name}]`,
+          originalType: file.type || 'application/octet-stream',
+          mimeType: file.type || 'application/octet-stream',
+        })
+        continue
+      }
+
+      // Unknown but try as text if small enough (<2MB), otherwise treat as document
+      if (file.size < 2 * 1024 * 1024) {
+        try {
+          const text = await file.text()
+          newFiles.push({ name: file.name, type: 'text', content: text })
+          continue
+        } catch { /* fall through to document */ }
+      }
+
+      // Fallback: upload as document
+      if (flowId) {
+        try {
+          const formData = new FormData()
+          formData.append('file', file)
+          formData.append('path', `uploads/${file.name}`)
+          await fetch(`/api/workspace/${flowId}/file`, { method: 'POST', body: formData })
+        } catch (err) {
+          console.error('Failed to upload file to workspace:', err)
+        }
+      }
+      newFiles.push({
+        name: file.name,
+        type: 'document',
+        content: `[Uploaded file: ${file.name}]`,
+        originalType: file.type || 'application/octet-stream',
+        mimeType: file.type || 'application/octet-stream',
+      })
     }
 
     updateData('inputFiles', [...inputFiles, ...newFiles])
@@ -166,6 +237,10 @@ export function InputNode({ id, data, selected }: NodeProps) {
                 {file.type === 'image' ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={file.preview} alt={file.name} className="w-8 h-8 rounded object-cover shrink-0" />
+                ) : file.type === 'document' ? (
+                  <div className="w-8 h-8 rounded bg-amber-100 flex items-center justify-center shrink-0">
+                    <FileIcon className="w-4 h-4 text-amber-600" />
+                  </div>
                 ) : (
                   <div className="w-8 h-8 rounded bg-slate-200 flex items-center justify-center shrink-0">
                     <FileText className="w-4 h-4 text-slate-500" />
@@ -193,7 +268,7 @@ export function InputNode({ id, data, selected }: NodeProps) {
 
         <input
           ref={fileInputRef} type="file" multiple
-          accept="image/*,.txt,.md,.csv,.json,.ts,.tsx,.js,.jsx,.py,.html,.css,.yaml"
+          accept="image/*,.txt,.md,.csv,.json,.ts,.tsx,.js,.jsx,.py,.html,.css,.yaml,.yml,.xml,.sh,.bat,.sql,.r,.m,.c,.cpp,.h,.hpp,.java,.go,.rs,.rb,.php,.swift,.kt,.scala,.lua,.pl,.ini,.toml,.cfg,.conf,.env,.log,.diff,.patch,.docx,.pptx,.xlsx,.pdf,.doc,.xls,.ppt,.odt,.ods,.odp,.rtf,.epub,.zip,.tar,.gz,.7z,.rar"
           className="hidden" onChange={handleFileUpload}
         />
       </div>

@@ -1,0 +1,183 @@
+{
+  "id": "flow-1773869870920",
+  "name": "Untitled Flow",
+  "nodes": [
+    {
+      "id": "io-1773869870920",
+      "type": "io",
+      "position": {
+        "x": 80,
+        "y": 150
+      },
+      "data": {
+        "label": "Chain A Input",
+        "inputText": "What is 2+2?",
+        "status": "success",
+        "logs": [],
+        "currentOutput": "",
+        "currentToken": ""
+      },
+      "measured": {
+        "width": 260,
+        "height": 221
+      }
+    },
+    {
+      "id": "agent-1773869870921",
+      "type": "agent",
+      "position": {
+        "x": 400,
+        "y": 150
+      },
+      "data": {
+        "label": "Chain A Agent",
+        "systemPrompt": "Answer the math question. Reply with just the number.",
+        "provider": "deepseek",
+        "model": "deepseek-chat",
+        "status": "success",
+        "logs": [
+          {
+            "id": "825d219a-dcec-4534-a75a-5a980a872a4a",
+            "type": "thinking",
+            "content": "4",
+            "timestamp": 1773869902070
+          },
+          {
+            "id": "3b59daff-b1f5-43ab-9491-165932726e20",
+            "type": "done",
+            "content": "4",
+            "timestamp": 1773869902070
+          }
+        ],
+        "currentOutput": "4",
+        "currentToken": ""
+      },
+      "measured": {
+        "width": 260,
+        "height": 202
+      }
+    },
+    {
+      "id": "output-1773869870922",
+      "type": "output",
+      "position": {
+        "x": 750,
+        "y": 150
+      },
+      "data": {
+        "label": "Chain A Output",
+        "status": "success",
+        "logs": [],
+        "currentOutput": "4",
+        "currentToken": ""
+      },
+      "measured": {
+        "width": 260,
+        "height": 180
+      }
+    },
+    {
+      "id": "io-1773869870923",
+      "type": "io",
+      "position": {
+        "x": 80,
+        "y": 450
+      },
+      "data": {
+        "label": "Chain B Input",
+        "inputText": "What is 3+5?",
+        "status": "success",
+        "logs": [],
+        "currentOutput": "",
+        "currentToken": ""
+      },
+      "measured": {
+        "width": 260,
+        "height": 221
+      }
+    },
+    {
+      "id": "agent-1773869870924",
+      "type": "agent",
+      "position": {
+        "x": 400,
+        "y": 450
+      },
+      "data": {
+        "label": "Chain B Agent",
+        "systemPrompt": "Answer the math question. Reply with just the number.",
+        "provider": "deepseek",
+        "model": "deepseek-chat",
+        "status": "success",
+        "logs": [
+          {
+            "id": "f2d84759-157f-4a0d-94ac-70bb2f62f6e6",
+            "type": "thinking",
+            "content": "8",
+            "timestamp": 1773869902448
+          },
+          {
+            "id": "afdd614e-2963-4607-bca5-fb5fab68e21c",
+            "type": "done",
+            "content": "8",
+            "timestamp": 1773869902449
+          }
+        ],
+        "currentOutput": "8",
+        "currentToken": ""
+      },
+      "measured": {
+        "width": 260,
+        "height": 202
+      }
+    },
+    {
+      "id": "output-1773869870925",
+      "type": "output",
+      "position": {
+        "x": 750,
+        "y": 450
+      },
+      "data": {
+        "label": "Chain B Output",
+        "status": "success",
+        "logs": [],
+        "currentOutput": "8",
+        "currentToken": ""
+      },
+      "measured": {
+        "width": 260,
+        "height": 180
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "xy-edge__io-1773869870920-agent-1773869870921",
+      "type": "custom",
+      "source": "io-1773869870920",
+      "target": "agent-1773869870921"
+    },
+    {
+      "id": "xy-edge__agent-1773869870921-output-1773869870922",
+      "type": "custom",
+      "source": "agent-1773869870921",
+      "target": "output-1773869870922"
+    },
+    {
+      "id": "xy-edge__io-1773869870923-agent-1773869870924",
+      "type": "custom",
+      "source": "io-1773869870923",
+      "target": "agent-1773869870924"
+    },
+    {
+      "id": "xy-edge__agent-1773869870924-output-1773869870925",
+      "type": "custom",
+      "source": "agent-1773869870924",
+      "target": "output-1773869870925"
+    }
+  ],
+  "createdAt": "2026-03-18T21:37:50.921Z",
+  "updatedAt": "2026-03-18T21:51:22.761Z"
+}"
+}

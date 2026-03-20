@@ -208,6 +208,8 @@ export function IndividualConfigModal({ agentName, onClose }: IndividualConfigMo
     { value: 'anthropic', label: 'Anthropic' },
     { value: 'openai', label: 'OpenAI' },
     { value: 'deepseek', label: 'DeepSeek' },
+    { value: 'google', label: 'Google' },
+    { value: 'minimax', label: 'MiniMax' },
   ]
   const modelOptions = MODEL_OPTIONS[config.provider].map(m => ({ value: m, label: m }))
   const thinkingOptions = [

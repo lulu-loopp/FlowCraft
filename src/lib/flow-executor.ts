@@ -211,3 +211,61 @@ export function getLoopNodeIds(
 }
 
 export const DEFAULT_MAX_LOOP_ITERATIONS = 10
+
+/**
+ * Compute which nodes to run when starting from a specific node.
+ * - Collects the start node + all downstream nodes
+ * - Walks upstream to include any nodes that don't have cached output
+ * - Returns the set of nodes to execute and which ones are pre-completed
+ */
+export function computeRunFromNodeSet(
+  startNodeId: string,
+  nodes: Node[],
+  edges: Edge[],
+  nodesWithOutput: Set<string>,
+): { nodesToRun: Set<string>; preCompleted: Set<string>; missingUpstream: string[] } {
+  const nodeIds = new Set(nodes.map(n => n.id))
+  const nodesToRun = new Set<string>()
+
+  // Detect loop back-edges so we don't follow them in BFS
+  const hasCycles = detectCycles(nodes, edges)
+  const loopEdgeIds = hasCycles ? findLoopEdgeIds(edges) : new Set<string>()
+
+  // 1. Forward BFS: start node + all downstream (skip loop back-edges)
+  const downQueue = [startNodeId]
+  const visited = new Set<string>()
+  while (downQueue.length > 0) {
+    const nid = downQueue.shift()!
+    if (visited.has(nid) || !nodeIds.has(nid)) continue
+    visited.add(nid)
+    nodesToRun.add(nid)
+    for (const e of edges) {
+      if (e.source === nid && !loopEdgeIds.has(e.id)) downQueue.push(e.target)
+    }
+  }
+
+  // 2. Don't pull in missing upstream — treat them as pre-completed with empty output.
+  //    Collect their labels for a warning message instead.
+  const missingUpstream: string[] = []
+  for (const nid of [...nodesToRun]) {
+    for (const e of edges) {
+      if (e.target === nid && !loopEdgeIds.has(e.id)) {
+        const src = e.source
+        if (!nodesToRun.has(src) && !nodesWithOutput.has(src) && nodeIds.has(src)) {
+          // Mark as pre-completed (empty output) instead of pulling into nodesToRun
+          nodesWithOutput.add(src)
+          const srcNode = nodes.find(n => n.id === src)
+          missingUpstream.push((srcNode?.data?.label as string) || src)
+        }
+      }
+    }
+  }
+
+  // 3. Pre-completed: nodes NOT in nodesToRun that have cached output
+  const preCompleted = new Set<string>()
+  for (const nid of nodesWithOutput) {
+    if (!nodesToRun.has(nid)) preCompleted.add(nid)
+  }
+
+  return { nodesToRun, preCompleted, missingUpstream }
+}

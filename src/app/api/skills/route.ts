@@ -9,6 +9,16 @@ import type { ScannedItem } from '@/types/registry'
 
 const SKILLS_DIR = path.join(process.cwd(), 'skills')
 
+/** Fire-and-forget: analyze skills in background after installation */
+function analyzeSkillsInBackground(names: string[], baseUrl: string) {
+  if (names.length === 0) return
+  fetch(`${baseUrl}/api/skills/analyze`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: names }),
+  }).catch(() => { /* non-critical: analysis can be retried later */ })
+}
+
 export async function GET() {
   try {
     const registry = await readSkillRegistry()
@@ -47,6 +57,9 @@ export async function POST(req: NextRequest) {
         enabled: true,
         path: `skills/${manifest.name}`,
       })
+      // Analyze skill profile in background
+      const baseUrl = req.nextUrl.origin
+      analyzeSkillsInBackground([manifest.name], baseUrl)
       return Response.json({ installed: [manifest.name], errors: [] })
     }
 
@@ -87,6 +100,10 @@ export async function POST(req: NextRequest) {
         )
       }
     }
+
+    // Analyze all newly installed skills in background
+    const baseUrl = req.nextUrl.origin
+    analyzeSkillsInBackground(installed, baseUrl)
 
     return Response.json({ installed, errors })
   } catch (err) {

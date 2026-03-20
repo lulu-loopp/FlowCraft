@@ -2,10 +2,11 @@
 
 import React, { useState, useRef, useCallback } from 'react'
 import { NodeProps } from '@xyflow/react'
-import { Package, RefreshCw, CheckCircle2, AlertCircle, AlertTriangle, Unplug, HelpCircle, Layers } from 'lucide-react'
+import { Package, RefreshCw, CheckCircle2, AlertCircle, AlertTriangle, Unplug, HelpCircle, Layers, Play, FastForward } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { useFlowStore } from '@/store/flowStore'
 import { useUIStore } from '@/store/uiStore'
+import { useRunFromNode } from '@/hooks/useRunFromNode'
 import { PackedNodePreview } from '../packed-node-preview'
 import { PackedNodeHandles } from './packed-node-handles'
 import { NodeHelpModal } from './node-help-modal'
@@ -19,8 +20,10 @@ export interface HandleConfig {
 }
 
 export function PackedNode({ id, data, selected }: NodeProps) {
-  const { removeNode, duplicateNode } = useFlowStore()
+  const { removeNode, duplicateNode, isRunning: isFlowRunning } = useFlowStore()
   const { t } = useUIStore()
+  const runCtx = useRunFromNode()
+  const [upstreamWarning, setUpstreamWarning] = useState<{ missingLabels: string[] } | null>(null)
   const [showPreview, setShowPreview] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
   const [showSharedDialog, setShowSharedDialog] = useState(false)
@@ -234,6 +237,69 @@ export function PackedNode({ id, data, selected }: NodeProps) {
       )}
 
       {showHelp && <NodeHelpModal nodeType="packed" onClose={() => setShowHelp(false)} />}
+
+      {/* Hover play buttons */}
+      {runCtx && !isFlowRunning && !isRunning && !selected && (
+        <div
+          className="absolute -bottom-3 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-1"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <button
+            className="p-1.5 bg-white rounded-full shadow-md border border-slate-200
+              text-slate-400 hover:text-emerald-600 hover:border-emerald-300
+              active:scale-90 transition-all"
+            onClick={async (e) => {
+              e.stopPropagation();
+              if (!runCtx) return;
+              const result = await runCtx.runSingleNode(id);
+              if (result?.needsWarning) setUpstreamWarning({ missingLabels: result.missingLabels });
+            }}
+            title={t('node.runSingle')}
+          >
+            <Play className="w-3 h-3" />
+          </button>
+          <button
+            className="p-1.5 bg-white rounded-full shadow-md border border-slate-200
+              text-slate-400 hover:text-teal-600 hover:border-teal-300
+              active:scale-90 transition-all"
+            onClick={(e) => { e.stopPropagation(); runCtx.runFromNode(id); }}
+            title={t('node.runFromHere')}
+          >
+            <FastForward className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+
+      {/* Upstream missing warning popup */}
+      {upstreamWarning && (
+        <div
+          className="absolute -bottom-[88px] left-1/2 -translate-x-1/2 z-50 w-[240px]"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <div className="bg-white rounded-lg shadow-xl border border-amber-200 p-3">
+            <div className="flex items-start gap-2 mb-2">
+              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                {t('node.upstreamMissing').replace('{nodes}', upstreamWarning.missingLabels.join(', '))}
+              </p>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                className="text-[11px] px-2 py-1 text-slate-500 hover:text-slate-700 rounded transition-colors"
+                onClick={() => setUpstreamWarning(null)}
+              >
+                {t('node.cancel')}
+              </button>
+              <button
+                className="text-[11px] px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded transition-colors"
+                onClick={async () => { setUpstreamWarning(null); if (runCtx) await runCtx.runSingleNode(id, { force: true }); }}
+              >
+                {t('node.runAnyway')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showSharedDialog && (
         <SharedEditDialog

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { readSettings, writeSettings } from '@/lib/settings-storage';
 import { requireMutationAuth } from '@/lib/api-auth';
 
-const KEY_FIELDS = new Set(['anthropicApiKey', 'openaiApiKey', 'deepseekApiKey', 'tavilyApiKey', 'braveApiKey', 'apiToken']);
+const KEY_FIELDS = new Set(['anthropicApiKey', 'openaiApiKey', 'deepseekApiKey', 'googleApiKey', 'minimaxApiKey', 'tavilyApiKey', 'braveApiKey', 'replicateApiKey', 'apiToken']);
 const REDACTED = 'REDACTED';
 
 function maskSettings(settings: Record<string, unknown>): Record<string, unknown> {

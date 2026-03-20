@@ -6,14 +6,17 @@
 import type { Tool } from '@/types/tool'
 import type { ToolName } from './definitions'
 import { MCP_TOOLS }               from './definitions'
-import { createWebSearchTool }     from './web-search'
+import { createWebSearchTool }      from './web-search'
 import { createCalculatorTool }    from './calculator'
 import { createUrlFetchTool }      from './url-fetch'
-import { createCodeExecuteTool }   from './code-execute'
+import { createCodeExecuteTool, createJsExecuteTool } from './code-execute'
 import { createPythonExecuteTool } from './python-executor'
+import { createImageGenerateTool, type ImageModel } from './image-generate'
+import { createSaveDocumentTool } from './save-document'
 import { loadMCPTools }            from '@/lib/mcp/client'
 import { getMCPServerForTool }     from '@/lib/mcp/servers'
 import type { ToolApiKeys } from '@/lib/tool-api-keys'
+import { readSettings } from '@/lib/settings-storage'
 
 export type { ToolName }                from './definitions'
 export { TOOL_DESCRIPTIONS, MCP_TOOLS } from './definitions'
@@ -70,6 +73,8 @@ export async function createTools(
   apiKeys: ToolApiKeys
 ): Promise<Tool[]> {
   const tools: Tool[] = []
+  const settings = await readSettings()
+  const defaultImageModel = (settings.defaultImageModel as ImageModel) || undefined
 
   for (const name of enabledTools) {
     if (name === 'url_fetch') {
@@ -102,10 +107,16 @@ export async function createTools(
       }
     } else {
       const registry: Partial<Record<ToolName, () => Tool>> = {
-        web_search:     () => createWebSearchTool(apiKeys.tavily ?? ''),
-        calculator:     () => createCalculatorTool(),
-        code_execute:   () => createCodeExecuteTool(),
-        python_execute: () => createPythonExecuteTool(),
+        web_search:      () => createWebSearchTool(apiKeys.tavily ?? ''),
+        calculator:      () => createCalculatorTool(),
+        code_execute:    () => createCodeExecuteTool(),
+        js_execute:      () => createJsExecuteTool(),
+        python_execute:  () => createPythonExecuteTool(),
+        image_generate:  () => {
+          const keys = { google: apiKeys.google ?? '', openai: apiKeys.openai ?? '', replicate: apiKeys.replicate ?? '' }
+          return createImageGenerateTool(keys, defaultImageModel)
+        },
+        save_document:   () => createSaveDocumentTool(),
       }
       const factory = registry[name]
       if (factory) tools.push(factory())

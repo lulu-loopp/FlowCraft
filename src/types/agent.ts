@@ -32,11 +32,26 @@ export interface AgentRunState {
   iterationCount: number
 }
 
+// Token 用量统计
+export interface TokenUsage {
+  inputTokens: number
+  outputTokens: number
+}
+
+// Agent 单次运行的结果
+export interface RunResult {
+  steps: AgentStep[]
+  stopReason: 'done' | 'max_iterations'
+  finalOutput: string
+  usage: TokenUsage
+}
+
 // SSE 流式传输的消息格式
 export type StreamEvent =
   | { type: 'step';   data: AgentStep }
-  | { type: 'token';  data: string }     // 新增
+  | { type: 'token';  data: string }
   | { type: 'done';   data: string }
+  | { type: 'usage';  data: TokenUsage }
   | { type: 'error';  data: string }
 
 // Chat 模式的消息

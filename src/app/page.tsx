@@ -2,10 +2,11 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Settings, GitBranch } from 'lucide-react';
+import { Settings, GitBranch, BarChart3 } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { FlowCard } from '@/components/home/flow-card';
 import { NewFlowButton } from '@/components/home/new-flow-button';
+import { ImportYamlButton } from '@/components/home/import-yaml-button';
 import { DemoSection } from '@/components/home/demo-section';
 import { TrashSection } from '@/components/home/trash-section';
 import type { FlowMeta } from '@/types/flow';
@@ -65,6 +66,13 @@ export default function Home() {
             {t('home.playground')}
           </Link>
           <Link
+            href="/dashboard"
+            className="flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+          >
+            <BarChart3 className="w-4 h-4" />
+            {t('home.dashboard')}
+          </Link>
+          <Link
             href="/settings"
             className="flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
           >
@@ -88,7 +96,10 @@ export default function Home() {
             <h1 className="text-xl font-semibold text-slate-900">{t('home.myFlows')}</h1>
             <p className="text-sm text-slate-500 mt-0.5">{t('home.tagline')}</p>
           </div>
-          <NewFlowButton />
+          <div className="flex items-center gap-2">
+            <ImportYamlButton />
+            <NewFlowButton />
+          </div>
         </div>
 
         {/* Demo section */}
@@ -111,7 +122,10 @@ export default function Home() {
               <p className="text-sm font-medium text-slate-700">{t('home.noFlows')}</p>
               <p className="text-sm text-slate-400 mt-1">{t('home.noFlowsHint')}</p>
             </div>
-            <NewFlowButton />
+            <div className="flex items-center gap-2">
+              <ImportYamlButton />
+              <NewFlowButton />
+            </div>
           </div>
         )}
 

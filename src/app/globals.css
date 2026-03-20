@@ -94,6 +94,220 @@ path.running-edge-path {
   animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* ── AI Generate Orb — CSS blur blob fusion (ported from siri_orb_final) ── */
+
+/* Wrapper sits inside a sized parent; scales via transform on this element */
+.orb-wrap {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1),
+              opacity 0.5s ease;
+}
+/* Fading dark backdrop so screen-blend blobs show color on any background */
+.orb-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -30%;
+  border-radius: 42% 58% 48% 52% / 55% 44% 56% 45%;
+  background: radial-gradient(circle, #0a0515 0%, #0a051580 35%, transparent 62%);
+  z-index: 0;
+}
+.orb-blobs {
+  position: absolute;
+  width: 180%;
+  height: 180%;
+  top: -40%;
+  left: -40%;
+  filter: blur(12px);
+  mix-blend-mode: screen;
+  overflow: visible;
+  z-index: 1;
+}
+.orb-core {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  border-radius: 50%;
+  filter: blur(8px);
+  opacity: 0.5;
+  mix-blend-mode: normal;
+  z-index: 2;
+  animation: orb-core-pulse 3s infinite ease-in-out alternate;
+}
+@keyframes orb-core-pulse {
+  0%   { transform: translate(-50%, -50%) scale(0.9);  opacity: 0.4; }
+  100% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.6; }
+}
+.orb-highlight {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  mix-blend-mode: screen;
+}
+/* Star shape: wide soft spikes, subtle */
+.orb-highlight::before,
+.orb-highlight::after {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 40%),
+    linear-gradient(0deg,   transparent 30%, rgba(255,255,255,0.15) 46%, rgba(255,255,255,0.22) 50%, rgba(255,255,255,0.15) 54%, transparent 70%),
+    linear-gradient(90deg,  transparent 30%, rgba(255,255,255,0.15) 46%, rgba(255,255,255,0.22) 50%, rgba(255,255,255,0.15) 54%, transparent 70%);
+  filter: blur(2px);
+}
+.orb-highlight::after {
+  transform: rotate(45deg);
+  opacity: 0.4;
+}
+/* Idle: drift like the blobs */
+.orb-state-idle .orb-highlight    { animation: ohi 5.5s infinite ease-in-out alternate; }
+/* Hover: churn fast */
+.orb-state-idle .orb-wrap:hover .orb-highlight { animation: ohh 0.75s infinite ease-in-out alternate !important; }
+/* Thinking */
+.orb-state-thinking .orb-highlight { animation: ohi 2s infinite ease-in-out alternate; }
+/* Generating */
+.orb-state-generating .orb-highlight { animation: ohh 0.8s infinite ease-in-out alternate; }
+
+@keyframes ohi { 0%{transform:translate(-70%,-65%) scale(1) rotate(0deg); opacity:0.45}   100%{transform:translate(-30%,-35%) scale(1.15) rotate(20deg); opacity:0.3} }
+@keyframes ohh { 0%{transform:translate(-75%,-70%) scale(0.9) rotate(0deg); opacity:0.4} 100%{transform:translate(-25%,-30%) scale(1.2) rotate(35deg); opacity:0.3} }
+
+.orb-blob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  opacity: 0.92;
+  border-radius: 38% 62% 50% 50% / 55% 42% 58% 45%;
+}
+.orb-b1 { width: 45px; height: 45px; background: #3ee8ff; border-radius: 44% 56% 48% 52% / 50% 46% 54% 50%; }
+.orb-b2 { width: 52px; height: 52px; background: #ff3f8e; opacity: 1; border-radius: 36% 64% 52% 48% / 58% 40% 60% 42%; }
+.orb-b3 { width: 50px; height: 50px; background: #a855ff; border-radius: 50% 50% 42% 58% / 45% 55% 45% 55%; }
+.orb-b4 { width: 40px; height: 40px; background: #3388ff; border-radius: 42% 58% 55% 45% / 52% 48% 52% 48%; }
+.orb-b5 { width: 34px; height: 34px; background: #22ffaa; border-radius: 55% 45% 48% 52% / 46% 54% 50% 50%; }
+
+/* ── Idle: slow, small range ── */
+.orb-state-idle .orb-wrap     { transform: scale(0.68); }
+.orb-state-idle .orb-wrap:hover { transform: scale(0.72); }
+.orb-state-idle .orb-b1 { animation: oi1 5s    infinite ease-in-out alternate; }
+.orb-state-idle .orb-b2 { animation: oi2 5.5s  infinite ease-in-out alternate-reverse; }
+.orb-state-idle .orb-b3 { animation: oi3 6s    infinite ease-in-out alternate; }
+.orb-state-idle .orb-b4 { animation: oi4 7.5s  infinite ease-in-out alternate-reverse; }
+.orb-state-idle .orb-b5 { animation: oi5 8.5s  infinite ease-in-out alternate; }
+/* b1(cyan): top-left ↔ bottom-right — stays away from b4/b5 */
+@keyframes oi1 { 0%{transform:translate(-80%,-75%) scale(0.85) rotate(0deg)}   100%{transform:translate(-25%,-30%) scale(1.05) rotate(30deg)} }
+/* b2(magenta): central, wide sweep — dominant warm presence */
+@keyframes oi2 { 0%{transform:translate(-35%,-70%) scale(1.1)}                 100%{transform:translate(-65%,-30%) scale(0.9) rotate(-25deg)} }
+/* b3(purple): central, cross path with b2 — warm colors stay together */
+@keyframes oi3 { 0%{transform:translate(-65%,-35%) scale(0.9)}                 100%{transform:translate(-35%,-65%) scale(1.15) rotate(25deg)} }
+/* b4(blue): bottom-left ↔ top-left — opposite side from b5 */
+@keyframes oi4 { 0%{transform:translate(-80%,-30%) scale(0.9)}                 100%{transform:translate(-75%,-70%) scale(1.1) rotate(-20deg)} }
+/* b5(green): bottom-right ↔ top-right — opposite side from b4 */
+@keyframes oi5 { 0%{transform:translate(-20%,-25%) scale(0.85)}                100%{transform:translate(-25%,-75%) scale(1.0) rotate(15deg)} }
+
+/* ── Idle hover: fast churn ── */
+.orb-state-idle .orb-wrap:hover .orb-b1 { animation: oh1 0.8s infinite ease-in-out alternate !important; }
+.orb-state-idle .orb-wrap:hover .orb-b2 { animation: oh2 0.65s infinite ease-in-out alternate-reverse !important; }
+.orb-state-idle .orb-wrap:hover .orb-b3 { animation: oh3 0.7s  infinite ease-in-out alternate !important; }
+.orb-state-idle .orb-wrap:hover .orb-b4 { animation: oh4 0.6s  infinite ease-in-out alternate-reverse !important; }
+.orb-state-idle .orb-wrap:hover .orb-b5 { animation: oh5 0.9s  infinite ease-in-out alternate !important; }
+@keyframes oh1 { 0%{transform:translate(-75%,-65%) scale(0.85) rotate(0deg)}   100%{transform:translate(-25%,-35%) scale(1.2) rotate(50deg)} }
+@keyframes oh2 { 0%{transform:translate(-25%,-80%) scale(1.1) rotate(0deg)}    100%{transform:translate(-75%,-20%) scale(0.8) rotate(-55deg)} }
+@keyframes oh3 { 0%{transform:translate(-78%,-25%) scale(0.8) rotate(0deg)}    100%{transform:translate(-22%,-75%) scale(1.2) rotate(45deg)} }
+@keyframes oh4 { 0%{transform:translate(-20%,-45%) scale(1.0) rotate(0deg)}    100%{transform:translate(-80%,-60%) scale(1.3) rotate(-40deg)} }
+@keyframes oh5 { 0%{transform:translate(-50%,-80%) scale(0.85) rotate(0deg)}   100%{transform:translate(-50%,-20%) scale(1.15) rotate(35deg)} }
+
+/* ── Thinking: medium speed, wider range ── */
+.orb-state-thinking .orb-wrap       { transform: scale(0.88); }
+.orb-state-thinking .orb-wrap:hover { transform: scale(0.92); }
+.orb-state-thinking .orb-b1 { animation: ot1 1.4s infinite ease-in-out alternate; }
+.orb-state-thinking .orb-b2 { animation: ot2 1.7s infinite ease-in-out alternate-reverse; }
+.orb-state-thinking .orb-b3 { animation: ot3 1.5s infinite ease-in-out alternate; }
+.orb-state-thinking .orb-b4 { animation: ot4 1.2s infinite ease-in-out alternate-reverse; }
+.orb-state-thinking .orb-b5 { animation: ot5 2.0s infinite ease-in-out alternate; }
+@keyframes ot1 { 0%{transform:translate(-75%,-65%) scale(0.9) rotate(0deg)}   100%{transform:translate(-25%,-30%) scale(1.2) rotate(45deg)} }
+@keyframes ot2 { 0%{transform:translate(-30%,-80%) scale(1.1)}                100%{transform:translate(-75%,-20%) scale(0.8) rotate(-40deg)} }
+@keyframes ot3 { 0%{transform:translate(-78%,-20%) scale(0.82)}               100%{transform:translate(-22%,-78%) scale(1.18) rotate(38deg)} }
+@keyframes ot4 { 0%{transform:translate(-22%,-45%) scale(1.05)}               100%{transform:translate(-80%,-60%) scale(1.3) rotate(-35deg)} }
+@keyframes ot5 { 0%{transform:translate(-50%,-78%) scale(0.88)}               100%{transform:translate(-50%,-22%) scale(1.12) rotate(25deg)} }
+
+/* ── Generating: fast, breathing scale pulse ── */
+.orb-state-generating .orb-wrap { animation: orb-speak 0.55s infinite alternate ease-in-out; }
+.orb-state-generating .orb-b1 { animation: og1 0.75s infinite ease-in-out alternate; }
+.orb-state-generating .orb-b2 { animation: og2 0.95s infinite ease-in-out alternate-reverse; }
+.orb-state-generating .orb-b3 { animation: og3 0.85s infinite ease-in-out alternate; }
+.orb-state-generating .orb-b4 { animation: og4 0.65s infinite ease-in-out alternate-reverse; }
+.orb-state-generating .orb-b5 { animation: og5 1.1s  infinite ease-in-out alternate; }
+@keyframes og1 { 0%{transform:translate(-72%,-62%) scale(0.88) rotate(0deg)}  100%{transform:translate(-28%,-35%) scale(1.18) rotate(42deg)} }
+@keyframes og2 { 0%{transform:translate(-32%,-78%) scale(1.08)}               100%{transform:translate(-72%,-22%) scale(0.82) rotate(-38deg)} }
+@keyframes og3 { 0%{transform:translate(-75%,-22%) scale(0.8)}                100%{transform:translate(-25%,-75%) scale(1.15) rotate(35deg)} }
+@keyframes og4 { 0%{transform:translate(-25%,-42%) scale(1.02)}               100%{transform:translate(-78%,-58%) scale(1.28) rotate(-32deg)} }
+@keyframes og5 { 0%{transform:translate(-50%,-75%) scale(0.85)}               100%{transform:translate(-50%,-25%) scale(1.1) rotate(22deg)} }
+@keyframes orb-speak { 0%{transform:scale(1)} 100%{transform:scale(1.1)} }
+
+/* ── Done: fade out ── */
+.orb-state-done .orb-wrap {
+  opacity: 0;
+  transform: scale(0.4);
+  pointer-events: none;
+}
+
+/* ── AI-generated node fly-in ─────────────────────────────────── */
+@keyframes node-fly-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.node-fly-in {
+  opacity: 0;
+  animation: node-fly-in 0.3s ease-out forwards;
+}
+
+/* ── AI Generate: skeleton node assembly animation ──────────── */
+@keyframes node-assemble-in {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.node-assemble-in {
+  opacity: 0;
+  animation: node-assemble-in 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.node-skeleton-layer {
+  transition: opacity 300ms ease;
+}
+
+.node-skeleton-bar {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent),
+              rgb(226 232 240); /* slate-200 */
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+  border-radius: 4px;
+}
+
+.node-content-layer {
+  transition: opacity 300ms ease;
+}
+
+/* Edge draw-in: stroke-dashoffset animation via inline style */
+@keyframes edge-draw-in {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+
 /* ── Edge delete button ─────────────────────────────────────── */
 .edge-delete-btn {
   opacity: 0;

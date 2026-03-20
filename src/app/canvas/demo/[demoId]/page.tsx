@@ -13,13 +13,14 @@ import { LeftPanel } from '@/components/layout/left-panel';
 import { RightPanel } from '@/components/layout/right-panel';
 import { BottomPanel } from '@/components/layout/bottom-panel';
 import { useFlowExecution } from '@/hooks/useFlowExecution';
+import { RunFromNodeContext } from '@/hooks/useRunFromNode';
 
 export default function DemoPage() {
   const params = useParams();
   const router = useRouter();
   const demoId = params.demoId as string;
   const { lang } = useUIStore();
-  const { runFlow } = useFlowExecution();
+  const { runFlow, runFromNode, runSingleNode } = useFlowExecution();
   const [hasApiKey, setHasApiKey] = React.useState<boolean | null>(null);
   const [loaded, setLoaded] = React.useState(false);
 
@@ -113,6 +114,7 @@ export default function DemoPage() {
   };
 
   return (
+    <RunFromNodeContext.Provider value={{ runFromNode, runSingleNode }}>
     <div className="w-screen h-[100dvh] flex flex-col overflow-hidden bg-white">
       <DemoToolbar
         demoName={demo.name[lang]}
@@ -129,5 +131,6 @@ export default function DemoPage() {
         <RightPanel />
       </div>
     </div>
+    </RunFromNodeContext.Provider>
   );
 }

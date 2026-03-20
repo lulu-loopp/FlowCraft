@@ -68,6 +68,20 @@ export const NodeColors = {
     text: 'text-orange-900',
     badge: 'bg-orange-100 text-orange-900',
     hex: '#D97757'
+  },
+  merge: {
+    bg: 'bg-purple-50',
+    border: 'border-purple-500',
+    text: 'text-purple-700',
+    badge: 'bg-purple-100 text-purple-700',
+    hex: '#a855f7'
+  },
+  dispatcher: {
+    bg: 'bg-teal-50',
+    border: 'border-teal-500',
+    text: 'text-teal-700',
+    badge: 'bg-teal-100 text-teal-700',
+    hex: '#14b8a6'
   }
 } as const;
 

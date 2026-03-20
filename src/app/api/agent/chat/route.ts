@@ -4,7 +4,7 @@ import { createTools } from '@/lib/tools'
 import { createSkills } from '@/lib/skills'
 import { readSkillRegistry } from '@/lib/registry-manager'
 import { requireMutationAuth } from '@/lib/api-auth'
-import { resolveProviderApiKey } from '@/lib/resolve-api-key'
+import { resolveProviderWithFallback } from '@/lib/resolve-api-key'
 import { readToolApiKeys } from '@/lib/tool-api-keys'
 import type { ToolName } from '@/lib/tools'
 import type { SkillName } from '@/lib/skills'
@@ -27,14 +27,21 @@ export async function POST(req: NextRequest) {
     summary?: string
   }
 
-  const apiKey = await resolveProviderApiKey(body.config.model.provider)
+  const resolved = await resolveProviderWithFallback(
+    body.config.model.provider,
+    body.config.model.model,
+  )
 
-  if (!apiKey) {
+  if (!resolved) {
     return new Response(
       JSON.stringify({ error: `Missing API key for provider: ${body.config.model.provider}` }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     )
   }
+
+  const apiKey = resolved.apiKey
+  body.config.model.provider = resolved.provider
+  body.config.model.model = resolved.model
 
   // 从文件系统读取 skill 注册表，构建包含启用 skills 的 system prompt
   const { skills } = await readSkillRegistry().catch(() => ({ skills: [] }))

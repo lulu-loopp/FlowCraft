@@ -1,0 +1,159 @@
+{
+  "id": "flow-1773889698597",
+  "name": "老王小李",
+  "nodes": [
+    {
+      "id": "packed-1773889698597",
+      "type": "packed",
+      "position": {
+        "x": 496,
+        "y": 236
+      },
+      "data": {
+        "label": "王李和",
+        "packName": "王李和",
+        "isSharedPack": true,
+        "handleConfig": [
+          {
+            "id": "input-0",
+            "label": "io node",
+            "type": "input",
+            "internalNodeId": "io-1773770630717"
+          },
+          {
+            "id": "output-0",
+            "label": "output node",
+            "type": "output",
+            "internalNodeId": "output-1773787992342"
+          },
+          {
+            "id": "output-1",
+            "label": "output node",
+            "type": "output",
+            "internalNodeId": "output-1773787996362"
+          }
+        ],
+        "runningInnerNodes": [],
+        "completedInnerNodes": [
+          "io node",
+          "小李",
+          "output node"
+        ],
+        "innerProgress": {
+          "completed": 3,
+          "total": 5
+        }
+      },
+      "measured": {
+        "width": 280,
+        "height": 106
+      },
+      "selected": false
+    },
+    {
+      "id": "io-1773889698598",
+      "type": "io",
+      "position": {
+        "x": 146,
+        "y": 181
+      },
+      "data": {
+        "label": "io node",
+        "inputText": "分析一下\"小公司该不该用微服务架构\"这个问题test"
+      },
+      "measured": {
+        "width": 260,
+        "height": 221
+      }
+    },
+    {
+      "id": "output-1773889698599",
+      "type": "output",
+      "position": {
+        "x": 933,
+        "y": 138
+      },
+      "data": {
+        "label": "output node"
+      },
+      "measured": {
+        "width": 260,
+        "height": 157
+      }
+    },
+    {
+      "id": "output-1773889698600",
+      "type": "output",
+      "position": {
+        "x": 911,
+        "y": 365
+      },
+      "data": {
+        "label": "output node"
+      },
+      "measured": {
+        "width": 260,
+        "height": 157
+      }
+    },
+    {
+      "id": "agent-1773977993208",
+      "type": "agent",
+      "position": {
+        "x": 513.2555066079295,
+        "y": 526.2378854625551
+      },
+      "data": {
+        "label": "老王",
+        "systemPrompt": "你是一个软件架构顾问，负责为团队提供技术选型建议。",
+        "isReference": true,
+        "individualName": "老王",
+        "provider": "deepseek",
+        "model": "deepseek-chat",
+        "maxIterations": 10,
+        "enabledTools": [],
+        "enabledSkills": [],
+        "personality": {
+          "name": "老王",
+          "role": "20年经验的架构师",
+          "thinkingStyle": "conservative",
+          "communicationStyle": "concise",
+          "valueOrientation": "quality",
+          "backstory": "在银行和政府项目干了20年，见过太多技术追新导致的灾难。经历过三次大规模系统重构，每次都是因为前任架构师过度设计。",
+          "beliefs": "能用单体解决的问题绝不上微服务。复杂度是最大的敌人。先跑起来再说，过早优化是万恶之源。"
+        }
+      },
+      "selected": false,
+      "measured": {
+        "width": 260,
+        "height": 178
+      },
+      "dragging": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "xy-edge__io-1773889698598-packed-1773889698597",
+      "type": "custom",
+      "source": "io-1773889698598",
+      "target": "packed-1773889698597",
+      "targetHandle": "input-0"
+    },
+    {
+      "id": "xy-edge__packed-1773889698597-output-1773889698599",
+      "type": "custom",
+      "source": "packed-1773889698597",
+      "target": "output-1773889698599",
+      "sourceHandle": "output-0"
+    },
+    {
+      "id": "xy-edge__packed-1773889698597-output-1773889698600",
+      "type": "custom",
+      "source": "packed-1773889698597",
+      "target": "output-1773889698600",
+      "sourceHandle": "output-1"
+    }
+  ],
+  "createdAt": "2026-03-19T03:08:18.599Z",
+  "updatedAt": "2026-03-20T04:24:38.463Z"
+}

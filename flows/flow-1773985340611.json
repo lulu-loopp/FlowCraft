@@ -1,0 +1,27 @@
+{
+  "id": "flow-1773985340611",
+  "name": "Untitled Flow",
+  "nodes": [
+    {
+      "id": "agent-1773985341901",
+      "type": "agent",
+      "position": {
+        "x": 352,
+        "y": 220
+      },
+      "data": {
+        "label": "agent node",
+        "provider": "minimax",
+        "model": "MiniMax-M2.5"
+      },
+      "selected": false,
+      "measured": {
+        "width": 260,
+        "height": 148
+      }
+    }
+  ],
+  "edges": [],
+  "createdAt": "2026-03-20T05:42:20.611Z",
+  "updatedAt": "2026-03-20T05:42:22.786Z"
+}

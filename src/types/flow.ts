@@ -65,14 +65,24 @@ export interface AiCodingNodeData extends Record<string, unknown> {
   currentOutput?: string;
 }
 
-/** File attached to an Input node (image or text) */
+/** Artifact produced by an agent node (file in workspace) */
+export interface NodeArtifact {
+  fileName: string        // e.g. "presentation.pptx"
+  relativePath: string    // relative to workspace dir
+  mimeType: string        // e.g. "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+  size: number
+  createdBy: string       // node ID that created it
+}
+
+/** File attached to an Input node (image, text, or document) */
 export interface InputFile {
   name: string
-  type: 'image' | 'text'
-  content?: string
-  base64?: string
+  type: 'image' | 'text' | 'document'
+  content?: string        // for text files: the content; for documents: description/placeholder
+  base64?: string         // for images: base64 encoded data
   mimeType?: string
   preview?: string
+  originalType?: string   // original MIME type, e.g. 'application/pdf'
 }
 
 /** Data shape for Output nodes */

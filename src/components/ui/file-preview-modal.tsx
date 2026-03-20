@@ -36,6 +36,23 @@ function isMarkdown(filePath: string): boolean {
   return /\.md$/i.test(filePath)
 }
 
+const BINARY_EXTS = new Set(['pptx', 'xlsx', 'docx', 'pdf', 'zip', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp3', 'mp4', 'wav'])
+
+function isBinaryFile(filePath: string): boolean {
+  const ext = filePath.split('.').pop()?.toLowerCase() || ''
+  return BINARY_EXTS.has(ext)
+}
+
+function isImageFile(filePath: string): boolean {
+  return /\.(png|jpg|jpeg|gif|webp)$/i.test(filePath)
+}
+
+const FILE_TYPE_LABELS: Record<string, string> = {
+  pptx: 'PowerPoint', xlsx: 'Excel', docx: 'Word', pdf: 'PDF',
+  zip: 'ZIP Archive', png: 'Image', jpg: 'Image', jpeg: 'Image',
+  gif: 'Image', webp: 'Image', mp3: 'Audio', mp4: 'Video', wav: 'Audio',
+}
+
 export function FilePreviewModal({
   isOpen, onClose, title, flowId, filePath, initialContent, editable = true,
 }: FilePreviewModalProps) {
@@ -43,6 +60,8 @@ export function FilePreviewModal({
   const [prevInitial, setPrevInitial] = useState(initialContent)
   const [content, setContent] = useState(initialContent || '')
   const [editContent, setEditContent] = useState('')
+  const [previewFormat, setPreviewFormat] = useState<'text' | 'markdown' | 'html' | 'iframe'>('text')
+  const [iframeUrl, setIframeUrl] = useState('')
   const [mode, setMode] = useState<ViewMode>('preview')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -67,18 +86,30 @@ export function FilePreviewModal({
     if (!flowId || !filePath) return
 
     const controller = new AbortController()
+    const binary = isBinaryFile(filePath)
+
     const doFetch = async () => {
       setLoading(true)
       try {
-        const res = await fetch(
-          `/api/workspace/${flowId}/file?path=${encodeURIComponent(filePath)}`,
-          { signal: controller.signal },
-        )
+        // For convertible binary files (pptx/xlsx/docx/pdf), use the preview API
+        const url = binary
+          ? `/api/workspace/${flowId}/preview?path=${encodeURIComponent(filePath)}`
+          : `/api/workspace/${flowId}/file?path=${encodeURIComponent(filePath)}`
+
+        const res = await fetch(url, { signal: controller.signal })
         if (controller.signal.aborted) return
         if (res.ok) {
           const data = await res.json()
-          setContent(data.content)
-          setEditContent(data.content)
+          const fmt = data.format || 'text'
+          if (fmt === 'iframe') {
+            setIframeUrl(data.url)
+            setPreviewFormat('iframe')
+            setContent('')
+          } else {
+            setContent(data.content || '')
+            setEditContent(data.content || '')
+            setPreviewFormat(fmt === 'html' ? 'html' : fmt === 'markdown' ? 'markdown' : 'text')
+          }
           setDirty(false)
         } else {
           setContent('')
@@ -158,9 +189,19 @@ export function FilePreviewModal({
 
   if (!isOpen || typeof document === 'undefined') return null
 
-  const lang = getLanguageFromPath(filePath || title)
-  const isMd = isMarkdown(filePath || title)
-  const canEdit = editable && flowId && filePath
+  const resolvedPath = filePath || title
+  const lang = getLanguageFromPath(resolvedPath)
+  const isMd = isMarkdown(resolvedPath)
+  const isBinary = isBinaryFile(resolvedPath)
+  const isImage = isImageFile(resolvedPath)
+  const canEdit = editable && flowId && filePath && !isBinary
+  const ext = resolvedPath.split('.').pop()?.toLowerCase() || ''
+  const typeLabel = FILE_TYPE_LABELS[ext] || ext.toUpperCase()
+
+  // Binary download URL
+  const binaryDownloadUrl = flowId && filePath
+    ? `/api/workspace/${flowId}/file?path=${encodeURIComponent(filePath)}&download=1`
+    : undefined
 
   return createPortal(
     <div
@@ -176,7 +217,7 @@ export function FilePreviewModal({
           <div className="flex items-center gap-2 min-w-0">
             <span className="font-semibold text-slate-800 truncate">{title}</span>
             <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full uppercase shrink-0">
-              {lang}
+              {isBinary ? typeLabel : lang}
             </span>
             {dirty && (
               <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full shrink-0">
@@ -197,7 +238,7 @@ export function FilePreviewModal({
             {mode === 'edit' && (
               <button
                 onClick={switchToPreview}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-600 hover:bg-teal-50 hover:text-teal-600 transition-colors"
               >
                 <Eye className="w-3.5 h-3.5" /> {t('file.preview')}
               </button>
@@ -213,22 +254,34 @@ export function FilePreviewModal({
                 {t('file.save')}
               </button>
             )}
-            {/* Copy */}
-            <button
-              onClick={handleCopy}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
-            >
-              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              {copied ? t('file.copied') : t('file.copy')}
-            </button>
+            {/* Copy (text files only) */}
+            {!isBinary && (
+              <button
+                onClick={handleCopy}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-600 hover:bg-teal-50 hover:text-teal-600 transition-colors"
+              >
+                {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? t('file.copied') : t('file.copy')}
+              </button>
+            )}
             {/* Download */}
-            <button
-              onClick={handleDownload}
-              className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-              title={t('file.download')}
-            >
-              <Download className="w-4 h-4" />
-            </button>
+            {isBinary && binaryDownloadUrl ? (
+              <a
+                href={binaryDownloadUrl}
+                download={title}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-teal-500 text-white hover:bg-teal-600 transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" /> {t('file.download')}
+              </a>
+            ) : (
+              <button
+                onClick={handleDownload}
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                title={t('file.download')}
+              >
+                <Download className="w-4 h-4" />
+              </button>
+            )}
             {/* Close */}
             <button
               onClick={onClose}
@@ -244,6 +297,52 @@ export function FilePreviewModal({
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-6 h-6 text-teal-500 animate-spin" />
+            </div>
+          ) : isBinary && isImage && binaryDownloadUrl ? (
+            /* Image: render inline */
+            <div className="flex items-center justify-center py-8 px-8">
+              <img
+                src={binaryDownloadUrl}
+                alt={title}
+                className="max-w-full max-h-[60vh] rounded-xl shadow-lg border border-slate-200"
+              />
+            </div>
+          ) : isBinary && previewFormat === 'iframe' && iframeUrl ? (
+            /* PDF: native browser rendering via iframe */
+            <iframe
+              src={iframeUrl}
+              className="w-full h-[75vh] border-0"
+              title={title}
+            />
+          ) : isBinary && previewFormat === 'html' && content ? (
+            /* DOCX/XLSX: rich HTML preview */
+            <div
+              className="px-6 py-5 overflow-x-auto"
+              dangerouslySetInnerHTML={{ __html: content }}
+            />
+          ) : isBinary && content ? (
+            /* Fallback: markitdown output as markdown */
+            <div className="px-6 py-5 prose prose-sm prose-slate max-w-none">
+              <MarkdownRenderer>{content}</MarkdownRenderer>
+            </div>
+          ) : isBinary ? (
+            /* Binary fallback: info card */
+            <div className="flex flex-col items-center justify-center py-16 px-8">
+              <div className="w-20 h-20 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-center mb-5">
+                <span className="text-2xl font-bold text-teal-600">{ext.toUpperCase()}</span>
+              </div>
+              <h3 className="text-lg font-semibold text-slate-800 mb-1 text-center">{title}</h3>
+              <p className="text-sm text-slate-500 mb-6">{typeLabel} file</p>
+              {binaryDownloadUrl && (
+                <a
+                  href={binaryDownloadUrl}
+                  download={title}
+                  className="flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl bg-teal-500 text-white hover:bg-teal-600 transition-colors shadow-sm"
+                >
+                  <Download className="w-4 h-4" />
+                  {t('file.download')}
+                </a>
+              )}
             </div>
           ) : mode === 'edit' ? (
             <textarea

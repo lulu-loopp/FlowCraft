@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Play, Save, Square, Home, FileDown, Check } from 'lucide-react';
+import { Play, Save, Square, Home, FileDown, FileUp, Check, RotateCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -12,6 +12,7 @@ import { useFlowPersistence } from '@/hooks/useFlowPersistence';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useRunTimer } from '@/hooks/useRunTimer';
 import { flowToYaml } from '@/lib/flow-yaml';
+import { pickAndImportYaml } from '@/lib/yaml-import-handler';
 import type { FlowData } from '@/types/flow';
 
 export function TopToolbar() {
@@ -62,6 +63,22 @@ export function TopToolbar() {
   }, [undo, redo]);
 
   const handleSave = () => { saveFlow(); };
+
+  const [importToast, setImportToast] = React.useState<string | null>(null);
+
+  const handleImportYaml = async () => {
+    try {
+      const result = await pickAndImportYaml();
+      if (result) {
+        const msg = t('toolbar.importedYaml').replace('{count}', String(result.nodeCount));
+        setImportToast(msg);
+        setTimeout(() => setImportToast(null), 3000);
+        router.push('/canvas/' + result.flowId);
+      }
+    } catch (err) {
+      console.error('YAML import failed:', err);
+    }
+  };
 
   const handleExportYaml = () => {
     const state = useFlowStore.getState();
@@ -191,11 +208,50 @@ export function TopToolbar() {
             size="sm"
             variant="outline"
             className="hidden border-slate-200 text-slate-700 hover:bg-slate-50 sm:flex gap-1.5"
+            onClick={handleImportYaml}
+            title={t('toolbar.importYaml')}
+          >
+            <FileUp className="w-3.5 h-3.5" />
+            <span className="hidden lg:inline">{t('toolbar.importYaml')}</span>
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            className="hidden border-slate-200 text-slate-700 hover:bg-slate-50 sm:flex gap-1.5"
             onClick={handleExportYaml}
             title={t('toolbar.exportYaml')}
           >
             <FileDown className="w-3.5 h-3.5" />
             <span className="hidden lg:inline">{t('toolbar.exportYaml')}</span>
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-slate-200 text-slate-500 hover:bg-slate-50 gap-1.5"
+            disabled={isRunning}
+            onClick={() => {
+              const store = useFlowStore.getState();
+              store.setNodes(store.nodes.map(n => ({
+                ...n,
+                data: {
+                  ...n.data,
+                  status: undefined,
+                  currentOutput: '',
+                  currentToken: '',
+                  logs: [],
+                  conditionResult: undefined,
+                  loopCount: undefined,
+                  dispatchResults: undefined,
+                  warningMessage: undefined,
+                },
+              })));
+              store.clearLogs();
+            }}
+            title={t('toolbar.resetNodes')}
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
           </Button>
 
           <Button
@@ -247,6 +303,13 @@ export function TopToolbar() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Import toast */}
+      {importToast && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-teal-600 text-white text-sm rounded-lg shadow-lg animate-in fade-in slide-in-from-top-2">
+          {importToast}
         </div>
       )}
     </>

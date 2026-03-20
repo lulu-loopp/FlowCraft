@@ -2,14 +2,23 @@
 import React from 'react'
 import { createPortal } from 'react-dom'
 import { NodeProps } from '@xyflow/react'
-import { Copy, Maximize2, Eye } from 'lucide-react'
+import { Copy, Maximize2, Eye, Download } from 'lucide-react'
 import { MarkdownRenderer } from '@/components/ui/markdown-renderer'
 import { BaseNode } from './base-node'
 import { OutputModal } from './output-modal'
 import { FilePreviewModal } from '@/components/ui/file-preview-modal'
 import { useFlowStore } from '@/store/flowStore'
 import { useUIStore } from '@/store/uiStore'
+import { useRunFromNode } from '@/hooks/useRunFromNode'
 import type { OutputNodeData } from '@/types/flow'
+
+/** Extract the workspace-relative path from a download URL like /api/workspace/{id}/file?path=foo.pptx&download=1 */
+function extractPathFromUrl(url: string): string | null {
+  try {
+    const u = new URL(url, 'http://localhost')
+    return u.searchParams.get('path')
+  } catch { return null }
+}
 
 // Inline toast via portal — avoids phantom rect from fixed inside transform
 function CopyToast({ show, message }: { show: boolean; message: string }) {
@@ -27,6 +36,7 @@ function CopyToast({ show, message }: { show: boolean; message: string }) {
 export function OutputNode({ id, data, selected }: NodeProps) {
   const { t } = useUIStore()
   const flowId = useFlowStore(s => s.flowId)
+  const runCtx = useRunFromNode()
   const [showModal, setShowModal] = React.useState(false)
   const [copied, setCopied] = React.useState(false)
   const [previewDoc, setPreviewDoc] = React.useState<{ name: string; url: string } | null>(null)
@@ -55,6 +65,8 @@ export function OutputNode({ id, data, selected }: NodeProps) {
         description={t('node.output.collectDescription')}
         status={status}
         selected={selected}
+        onRunFromHere={runCtx ? () => runCtx.runFromNode(id) : undefined}
+        onRunSingleNode={runCtx ? (opts) => runCtx.runSingleNode(id, opts) : undefined}
         onDoubleClick={() => output && setShowModal(true)}
         hideSourceHandle
       >
@@ -91,18 +103,28 @@ export function OutputNode({ id, data, selected }: NodeProps) {
           </div>
         )}
 
-        {/* Document preview links */}
+        {/* Document preview / download links */}
         {documents.length > 0 ? (
           <div className="mt-2 space-y-1">
             {documents.map((doc, i) => (
-              <button
-                key={i}
-                onClick={e => { e.stopPropagation(); setPreviewDoc(doc) }}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 transition-colors w-full"
-              >
-                <Eye className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">{doc.name}</span>
-              </button>
+              <div key={i} className="flex items-center gap-1 w-full">
+                <button
+                  onClick={e => { e.stopPropagation(); setPreviewDoc(doc) }}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 transition-colors flex-1 min-w-0"
+                >
+                  <Eye className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{doc.name}</span>
+                </button>
+                <a
+                  href={doc.url}
+                  download={doc.name}
+                  onClick={e => e.stopPropagation()}
+                  className="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors shrink-0"
+                  title={t('file.download')}
+                >
+                  <Download className="w-3.5 h-3.5" />
+                </a>
+              </div>
             ))}
           </div>
         ) : documentUrl ? (
@@ -126,7 +148,7 @@ export function OutputNode({ id, data, selected }: NodeProps) {
           onClose={() => setPreviewDoc(null)}
           title={previewDoc.name}
           flowId={flowId}
-          filePath={`docs/${previewDoc.name}`}
+          filePath={extractPathFromUrl(previewDoc.url) || previewDoc.name}
           editable
         />
       )}
